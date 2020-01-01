@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Cantina</RootNamespace>
+    <StartupObject></StartupObject>
+    <Version>0.0.0</Version>
+    <Company>Cantina</Company>
+    <Product>Cantina Chat</Product>
+    <Authors>ai297, Митрандир</Authors>
+    <Description>Проект "Чат Кантина" - любительский проект вэб-чата для фанатов выдуманных миров</Description>
+    <Copyright>(c) разработчики</Copyright>
+    <AssemblyVersion>0.0.0.1</AssemblyVersion>
+    <FileVersion>0.0.0.1</FileVersion>
+    <PackageId>Cantina</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+    <Folder Include="Models\" />
+  </ItemGroup>
+
+</Project>
