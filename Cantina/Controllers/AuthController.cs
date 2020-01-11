@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Linq;
+using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Cantina.Services;
@@ -23,12 +23,14 @@ namespace Cantina.Controllers
         DataContext database;
         IConfiguration configuration;
         IHashService hashService;
+        ICacheService<User> userService;
 
-        public AuthController(DataContext dataContext, IConfiguration configuration, IHashService hashService)
+        public AuthController(DataContext dataContext, IConfiguration configuration, IHashService hashService, ICacheService<User> userService)
         {
             this.database = dataContext;            // подключаем контекст базы данных
             this.configuration = configuration;     // подключаем конфигурацию
             this.hashService = hashService;         // сервис хэширования
+            this.userService = userService;         // сервис кеширования юзеров
         }
 
         /// <summary>
@@ -37,18 +39,20 @@ namespace Cantina.Controllers
         /// <param name="request">Email и Password в теле запроса.</param>
         [HttpPost]
         [AllowAnonymous]
-        public ActionResult<TokenResponse> Login([FromBody] LoginRequest request)
+        public async Task<ActionResult<TokenResponse>> Login([FromBody] LoginRequest request)
         {
             // ищем юзера по email
-            var user = database.Users.SingleOrDefault<User>(u => u.Email == request.Email.ToLower());
+            var user = await database.Users.SingleOrDefaultAsync<User>(u => u.Email == request.Email.ToLower());
             // если не нашли
             if (user == null) return NotFound("User not found");
 
             var userAuth = user.GetPasswordHash();
             // если пароль верный и аккаунт подтверждён / активен - генерируем и возвращаем токен авторизации
-            // TODO: сделать кэширование профиля авторизованного юзера, что бы не лазить за ним в базу каждый раз
             if (userAuth.Item1 == hashService.GetHash(request.Password, userAuth.Item2).Item1 && user.Confirmed && user.Active)
             {
+                // добавляем в кеш юзера, что бы не лазить за ним в базу каждый раз
+                userService.AddToCache(user);
+                // возвращаем токены авторизации
                 return Ok(GetTokenResponse(user));
             }
             else return Unauthorized("Invalid email or password.");
@@ -59,9 +63,9 @@ namespace Cantina.Controllers
         /// </summary>
         [HttpPost]
         [Authorize(Policy = AuthOptions.ClaimUA)]
-        public ActionResult<TokenResponse> Refresh()
+        public async  Task<ActionResult<TokenResponse>> Refresh()
         {
-            // получаем 
+            // получаем информацию о юзере из клэймов, сохранённых в токене
             var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.ClaimID);
             var ClaimUA = HttpContext.User.FindFirstValue(AuthOptions.ClaimUA);
             var ClaimName = HttpContext.User.FindFirstValue(ClaimsIdentity.DefaultNameClaimType);
@@ -69,14 +73,14 @@ namespace Cantina.Controllers
             var hashedUserAgent = hashService.SimpleHash(HttpContext.Request.Headers["User-Agent"]);
 
             // если не установлен claim с Id пользователя или маркер рефреш-токена (юзер агент)
-            // или значение клэйма юзер-агента не равно текущему хэшу User-Agent
+            // или значение клэйма юзер-агента не равно текущему хэшу User-Agent (другой браузер или другое устройство)
             // то возвращаем код 401
             if (String.IsNullOrEmpty(ClaimId) ||
                 String.IsNullOrEmpty(ClaimUA) ||
                 ClaimUA != hashedUserAgent) return Unauthorized();
 
-            // ищем юзера по Id
-            var user = database.Users.SingleOrDefault<User>(u => u.Id == Convert.ToInt32(ClaimId));
+            // ищем юзера по Id в кеше или базе
+            var user = await userService.Get(Convert.ToInt32(ClaimId));
             // если юзер не найден или аккаунт не подтверждён / не активен
             if (user == null || !user.Active || !user.Confirmed) return NotFound("Invalid uiser");
             // если юзер изменил email то рефреш-токен не действителен

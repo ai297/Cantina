@@ -32,7 +32,7 @@ namespace Cantina.Services
                 password: $"{password}{localKey}",
                 salt: Convert.FromBase64String(salt),
                 prf: KeyDerivationPrf.HMACSHA1,
-                iterationCount: 1500,
+                iterationCount: 499,
                 numBytesRequested: 256 / 8));
 
             return (hashedPassword, salt);
@@ -48,7 +48,11 @@ namespace Cantina.Services
             return Convert.ToBase64String(newSalt);
         }
 
-
+        /// <summary>
+        /// Метод используется для простого хэширования любой строки, для которой не требуется большая устойчивать к взлому
+        /// </summary>
+        /// <param name="str">строка, хэш которой нужно получить</param>
+        /// <returns>строка хэша</returns>
         public string SimpleHash(string str)
         {
             byte[] salt = new byte[0];
@@ -57,7 +61,7 @@ namespace Cantina.Services
                 password: str,
                 salt: salt,
                 prf: KeyDerivationPrf.HMACSHA1,
-                iterationCount: 10,
+                iterationCount: 1,
                 numBytesRequested: 128 / 8
                 ));
         }

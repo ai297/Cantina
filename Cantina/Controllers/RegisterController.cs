@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Cantina.Services;
 using Cantina.Models;
 
@@ -27,9 +26,9 @@ namespace Cantina.Controllers
         /// Обрабатываем POST - запрос на регистрацию нового юзера
         /// </summary>
         [HttpPost]
-        public ActionResult Post([FromBody] RegisterRequest request)
+        public async Task<ActionResult> Post([FromBody] RegisterRequest request)
         {
-            // 1. Валидация данных.
+            // 1. Проверяем корректность данных в запросе
             if (!TryValidateModel(request, nameof(request)))
             {
                 return BadRequest(new { errorText = "Invalid data" });
@@ -57,7 +56,7 @@ namespace Cantina.Controllers
             try
             {
                 database.Users.Add(user);
-                database.SaveChanges();
+                await database.SaveChangesAsync();
             }
             catch
             {
