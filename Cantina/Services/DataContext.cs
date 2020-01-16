@@ -36,7 +36,7 @@ namespace Cantina.Services
             // зависимая сущность - профиль юзера
             modelBuilder.Entity<User>().OwnsOne(user => user.Profile, profile =>
             {
-                profile.OwnsOne(pr => pr.MessageStyle);
+                profile.Property("messageStyle").HasColumnName("Profile_MessageStyle");
             });
             // сохраняем в базе так же приватные поля
             modelBuilder.Entity<User>().Property("passwordHash").HasColumnName("PasswordHash");

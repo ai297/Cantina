@@ -31,7 +31,7 @@ namespace Cantina.Controllers
             // 1. Проверяем корректность данных в запросе
             if (!TryValidateModel(request, nameof(request)))
             {
-                return BadRequest(new { errorText = "Invalid data" });
+                return BadRequest(new ErrorResponse { Message = "Некорректные данные" });
             }
 
             // 2. Шифруем пароль.
@@ -43,7 +43,7 @@ namespace Cantina.Controllers
                 Name = request.Name,
                 Gender = request.Gender,
                 Location = request.Location,
-                RegisterDate = DateTime.Now
+                RegisterDate = DateTime.UtcNow
             };
             var user = new User
             {
@@ -60,7 +60,7 @@ namespace Cantina.Controllers
             }
             catch
             {
-                return BadRequest(new { errorText = "Database insert error" });
+                return BadRequest(new ErrorResponse { Message = "Ошибка записи в базу данных" });
             }
             return Ok();
         }

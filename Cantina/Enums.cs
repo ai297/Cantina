@@ -1,17 +1,17 @@
 ﻿namespace Cantina
 {
     /// <summary>
-    /// Пол юзера
+    /// Пол юзера.
     /// </summary>
     public enum Gender : byte
     {
-        Uncertain,          // не определился
-        Male,               // Мужской
-        Female              // Женский
+        Uncertain,          // Не определился.
+        Male,               // Мужской.
+        Female              // Женский.
     }
 
     /// <summary>
-    /// Роли юзеров
+    /// Роли юзеров.
     /// </summary>
     public enum UserRoles : byte
     {
@@ -20,24 +20,30 @@
     }
 
     /// <summary>
-    /// Тип действия юзера, которое сохраняется в историю действий
+    /// Тип действия юзера, которое сохраняется в историю действий.
     /// </summary>
     public enum ActivityTypes : byte
     {
-        Register,           // Регистрация аккаунта
-        Visit,              // Посещение чата
-        ChangeName,         // Смена никнейма
-        Ban,                // Бан пользователя
+        Register,           // Регистрация аккаунта.
+        Visit,              // Посещение чата.
+        ChangeName,         // Смена никнейма.
     }
 
     /// <summary>
-    /// Типы сообщений
+    /// Варианты размера шрифта в стиле сообщения.
     /// </summary>
-    public enum MessageTypes : byte
+    public enum FontSizes : byte
     {
-        SystemMessage,              // Системное сообщение (например уведомление, что кто-то вошёл/вышел
-        BaseMessage,                // Обычное сообщение
-        PrivatMessage,              // Приватное сообщение
+        Small,              // Я-всех-стесняюсь мелкий шрфит.
+        Medium,             // Стандартный размер шрифта.
+        Large,              // Хочу-быть-заметным крупный шрифт.
     }
 
+    /// <summary>
+    /// Статус пользователя в онлайне.
+    /// </summary>
+    public enum UserOnlineStatus : byte
+    {
+        Online,             // Юзер в онлайне.
+    }
 }

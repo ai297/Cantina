@@ -44,7 +44,7 @@ namespace Cantina.Controllers
             // ищем юзера по email
             var user = await database.Users.SingleOrDefaultAsync<User>(u => u.Email == request.Email.ToLower());
             // если не нашли
-            if (user == null) return NotFound("User not found");
+            if (user == null) return Unauthorized(new ErrorResponse { Message = "Неверный логин." });
 
             var userAuth = user.GetPasswordHash();
             // если пароль верный и аккаунт подтверждён / активен - генерируем и возвращаем токен авторизации
@@ -55,7 +55,7 @@ namespace Cantina.Controllers
                 // возвращаем токены авторизации
                 return Ok(GetTokenResponse(user));
             }
-            else return Unauthorized("Invalid email or password.");
+            else return Unauthorized(new ErrorResponse { Message = "Неверный пароль." });
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace Cantina.Controllers
             // ищем юзера по Id в кеше или базе
             var user = await userService.Get(Convert.ToInt32(ClaimId));
             // если юзер не найден или аккаунт не подтверждён / не активен
-            if (user == null || !user.Active || !user.Confirmed) return NotFound("Invalid uiser");
+            if (user == null || !user.Active || !user.Confirmed) return Unauthorized();
             // если юзер изменил email то рефреш-токен не действителен
             if (user.Email != ClaimName) return Unauthorized();
             

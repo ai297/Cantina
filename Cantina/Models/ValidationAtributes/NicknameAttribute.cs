@@ -10,7 +10,7 @@ namespace Cantina.Models
     /// </summary>
     public class NicknameAttribute : ValidationAttribute
     {
-        const string pattern = @"^[a-zа-я]{2,9}\s?[a-zа-я]{2,10}$";  // шаблон для никнейма
+        const string pattern = @"^[a-zа-я]{2,9}\s?[a-zа-я0-9]{2,10}$";  // шаблон для никнейма
 
         public override bool IsValid(object value)
         {

@@ -8,6 +8,14 @@ namespace Cantina.Models
     /// </summary>
     public class MessageStyle
     {
-        // TODO: продумать как оптималнее хранить настройки оформления сообщений
+        /// <summary>
+        /// Стиль отображения никнейма.
+        /// </summary>
+        public FontStyle Name { get; set; }
+
+        /// <summary>
+        /// Стиль отображения сообщения.
+        /// </summary>
+        public FontStyle Message { get; set; }
     }
 }

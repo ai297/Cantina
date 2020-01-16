@@ -11,6 +11,7 @@ namespace Cantina.Models
     {
         public int Id { get; set; }
 
+        [Required]
         public DateTime Date { get; set; }
 
         /// <summary>
@@ -25,6 +26,7 @@ namespace Cantina.Models
         [MaxLength(255)]
         public string Description { get; set; }
 
+        [Required]
         public int UserID { get; set; }
         /// <summary>
         /// Навигационное свойство для связи с таблицей Users

@@ -1,4 +1,7 @@
+using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +25,7 @@ namespace Cantina
         
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
             // Контекст базы данных.
             services.AddDbContext<DataContext>();
             
@@ -46,6 +50,21 @@ namespace Cantina
                     // Проверка ключа безопасности.
                     ValidateIssuerSigningKey = true
                 };
+                
+                // Если обращаемся к хабу, то токен надо получать из строки запроса, иначе из заголовка.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(MainHub.path))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
@@ -60,11 +79,20 @@ namespace Cantina
             // Сервис для работы с юзерами с использованием кеша.
             services.AddTransient<ICacheService<User>, UserCacheService>();
 
-            // Используем контроллеры из архитектуры MVC (без View).
-            services.AddControllers();
+            // Этот сервис хранит список посетителей онлайн.
+            services.AddSingleton<UsersOnlineService>();
 
             // SignalR (для реал-тайм обмена сообщениями через WebSockets)
-            services.AddSignalR();
+            services.AddSignalR(hubOptions =>
+            {
+                hubOptions.EnableDetailedErrors = true; // TODO: заменить на false;
+                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(5); // Если в течении 5 минут нет сообщений от клиента - закрыть соединение.
+                hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);     // Время ожидания подтверждения о подключении от юзера.
+                hubOptions.KeepAliveInterval = TimeSpan.FromMinutes(2);     // Частота отправки Ping-сообщений.
+            });
+
+            // Используем контроллеры из архитектуры MVC (без View).
+            services.AddControllers();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -75,6 +103,13 @@ namespace Cantina
             {
                 // Вывод сообщений об ошибках, если приложение на стадии разработки.
                 app.UseDeveloperExceptionPage();
+                // крос-доменные запросы.
+                // TODO: Безопасно настроить политику крос-доменных запросов
+                app.UseCors(builder => 
+                    builder.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    );
             }
             else
             {
@@ -91,7 +126,7 @@ namespace Cantina
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();                 // Маршрутизация на контроллеры на основе атрибутов.
-                endpoints.MapHub<MainHub>("/hub/main");    // Хаб, принимает и пересылает сообщения.
+                endpoints.MapHub<MainHub>(MainHub.path);    // Хаб, принимает и пересылает сообщения.
             });
 
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Cantina.Models
@@ -9,6 +10,7 @@ namespace Cantina.Models
     /// <summary>
     /// Профиль пользователя
     /// </summary>
+    [Owned]
     public class UserProfile
     {
         /// <summary>
@@ -39,7 +41,18 @@ namespace Cantina.Models
         /// <summary>
         /// Стиль оформления сообщений.
         /// </summary>
-        public MessageStyle MessageStyle { get; set; }
+        [NotMapped]
+        public MessageStyle MessageStyle { 
+            get
+            {
+                return JsonSerializer.Deserialize<MessageStyle>(messageStyle);
+            }
+            set
+            {
+                messageStyle = JsonSerializer.Serialize<MessageStyle>(value);
+            }
+        }
+        private string messageStyle; // стиль сообщений в сериализованном виде
 
         /// <summary>
         /// Дата регистрации
