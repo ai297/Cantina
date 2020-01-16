@@ -47,15 +47,17 @@ namespace Cantina.Controllers
             if (user == null) return Unauthorized(new ErrorResponse { Message = "Неверный логин." });
 
             var userAuth = user.GetPasswordHash();
+            return Ok(hashService.GetHash(request.Password, userAuth.Item2).Item1);
+
             // если пароль верный и аккаунт подтверждён / активен - генерируем и возвращаем токен авторизации
-            if (userAuth.Item1 == hashService.GetHash(request.Password, userAuth.Item2).Item1 && user.Confirmed && user.Active)
-            {
-                // добавляем в кеш юзера, что бы не лазить за ним в базу каждый раз
-                userService.AddToCache(user);
-                // возвращаем токены авторизации
-                return Ok(GetTokenResponse(user));
-            }
-            else return Unauthorized(new ErrorResponse { Message = "Неверный пароль." });
+            //if (userAuth.Item1 == hashService.GetHash(request.Password, userAuth.Item2).Item1 && user.Confirmed && user.Active)
+            //{
+            //    // добавляем в кеш юзера, что бы не лазить за ним в базу каждый раз
+            //    userService.AddToCache(user);
+            //    // возвращаем токены авторизации
+            //    return Ok(GetTokenResponse(user));
+            //}
+            //else return Unauthorized(new ErrorResponse { Message = "Неверный пароль." });
         }
 
         /// <summary>

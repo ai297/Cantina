@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Cantina.Migrations
 {
-    public partial class Initialize : Migration
+    public partial class Initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -15,22 +15,24 @@ namespace Cantina.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Email = table.Column<string>(maxLength: 64, nullable: false),
+                    Name = table.Column<string>(maxLength: 20, nullable: false),
                     Confirmed = table.Column<bool>(nullable: false),
                     Active = table.Column<bool>(nullable: false),
                     Role = table.Column<byte>(nullable: false),
-                    Profile_Name = table.Column<string>(maxLength: 20, nullable: false),
-                    Profile_Gender = table.Column<byte>(nullable: false),
+                    Profile_Gender = table.Column<byte>(nullable: true),
                     Profile_Location = table.Column<string>(maxLength: 32, nullable: true),
                     Profile_Birthday = table.Column<DateTime>(nullable: true),
                     Profile_RegisterDate = table.Column<DateTime>(type: "date", nullable: false),
                     Profile_LastEnterDate = table.Column<DateTime>(type: "date", nullable: true),
                     Profile_OnlineTime = table.Column<int>(nullable: true),
+                    Profile_MessageStyle = table.Column<string>(nullable: true),
                     PasswordHash = table.Column<string>(maxLength: 128, nullable: false),
                     salt = table.Column<string>(maxLength: 64, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
+                    table.UniqueConstraint("AK_Users_Email_Name", x => new { x.Email, x.Name });
                 });
 
             migrationBuilder.CreateTable(
@@ -59,12 +61,6 @@ namespace Cantina.Migrations
                 name: "IX_History_UserID",
                 table: "History",
                 column: "UserID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
-                column: "Email",
-                unique: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

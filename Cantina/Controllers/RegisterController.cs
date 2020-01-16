@@ -40,7 +40,6 @@ namespace Cantina.Controllers
             // 3. Создаём нового юзера.
             var profile = new UserProfile
             {
-                Name = request.Name,
                 Gender = request.Gender,
                 Location = request.Location,
                 RegisterDate = DateTime.UtcNow
@@ -48,6 +47,7 @@ namespace Cantina.Controllers
             var user = new User
             {
                 Email = request.Email,
+                Name = request.Name,
                 Profile = profile
             };
             user.SetPasswordHash(hashedPassword.Item1, hashedPassword.Item2);

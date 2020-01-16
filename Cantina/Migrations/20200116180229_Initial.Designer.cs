@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cantina.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20200111163225_Initialize")]
-    partial class Initialize
+    [Migration("20200116180229_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -39,6 +39,11 @@ namespace Cantina.Migrations
                         .HasColumnType("character varying(64)")
                         .HasMaxLength(64);
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(20);
+
                     b.Property<byte>("Role")
                         .HasColumnType("smallint");
 
@@ -56,8 +61,7 @@ namespace Cantina.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasAlternateKey("Email", "Name");
 
                     b.ToTable("Users");
                 });
@@ -109,16 +113,15 @@ namespace Cantina.Migrations
                                 .HasColumnType("character varying(32)")
                                 .HasMaxLength(32);
 
-                            b1.Property<string>("Name")
-                                .IsRequired()
-                                .HasColumnType("character varying(20)")
-                                .HasMaxLength(20);
-
                             b1.Property<int>("OnlineTime")
                                 .HasColumnType("integer");
 
                             b1.Property<DateTime>("RegisterDate")
                                 .HasColumnType("date");
+
+                            b1.Property<string>("messageStyle")
+                                .HasColumnName("Profile_MessageStyle")
+                                .HasColumnType("text");
 
                             b1.HasKey("UserId");
 
@@ -126,19 +129,6 @@ namespace Cantina.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("UserId");
-
-                            b1.OwnsOne("Cantina.Models.MessageStyle", "MessageStyle", b2 =>
-                                {
-                                    b2.Property<int>("UserProfileUserId")
-                                        .HasColumnType("integer");
-
-                                    b2.HasKey("UserProfileUserId");
-
-                                    b2.ToTable("Users");
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("UserProfileUserId");
-                                });
                         });
                 });
 

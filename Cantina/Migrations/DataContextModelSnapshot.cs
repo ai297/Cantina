@@ -37,6 +37,11 @@ namespace Cantina.Migrations
                         .HasColumnType("character varying(64)")
                         .HasMaxLength(64);
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(20);
+
                     b.Property<byte>("Role")
                         .HasColumnType("smallint");
 
@@ -54,8 +59,7 @@ namespace Cantina.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasAlternateKey("Email", "Name");
 
                     b.ToTable("Users");
                 });
@@ -107,11 +111,6 @@ namespace Cantina.Migrations
                                 .HasColumnType("character varying(32)")
                                 .HasMaxLength(32);
 
-                            b1.Property<string>("Name")
-                                .IsRequired()
-                                .HasColumnType("character varying(20)")
-                                .HasMaxLength(20);
-
                             b1.Property<int>("OnlineTime")
                                 .HasColumnType("integer");
 
@@ -119,7 +118,7 @@ namespace Cantina.Migrations
                                 .HasColumnType("date");
 
                             b1.Property<string>("messageStyle")
-                                .HasColumnName("MessageStyle")
+                                .HasColumnName("Profile_MessageStyle")
                                 .HasColumnType("text");
 
                             b1.HasKey("UserId");

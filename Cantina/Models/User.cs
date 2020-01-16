@@ -22,6 +22,13 @@ namespace Cantina.Models
         public string Email { get; set; }
 
         /// <summary>
+        /// Никнейм, обязательное свойство
+        /// </summary>
+        [Required, Nickname]
+        [MaxLength(20), MinLength(4)]
+        public string Name { get; set; }
+
+        /// <summary>
         /// Подтверждён ли аккаунт. Если аккаунт не подтверждён - использовать его нельзя.
         /// </summary>
         public bool Confirmed { get; set; } = false;

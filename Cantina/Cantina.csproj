@@ -23,6 +23,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\20200116173206_Init.cs" />
+    <Compile Remove="Migrations\20200116173206_Init.Designer.cs" />
+    <Compile Remove="Migrations\20200116174108_Initial.cs" />
+    <Compile Remove="Migrations\20200116174108_Initial.Designer.cs" />
+    <Compile Remove="Migrations\20200116175419_Initial.cs" />
+    <Compile Remove="Migrations\20200116175419_Initial.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.0">
       <PrivateAssets>all</PrivateAssets>

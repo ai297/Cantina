@@ -14,14 +14,6 @@ namespace Cantina.Models
     public class UserProfile
     {
         /// <summary>
-        /// Никнейм, обязательное свойство
-        /// </summary>
-        [Required]
-        [Nickname]
-        [MaxLength(20), MinLength(4)]
-        public string Name { get; set; }
-
-        /// <summary>
         /// Пол, по умолчанию - не определившийся
         /// </summary>
         public Gender Gender { get; set; } = Gender.Uncertain;

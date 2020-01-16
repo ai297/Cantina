@@ -42,7 +42,7 @@ namespace Cantina.Services
             modelBuilder.Entity<User>().Property("passwordHash").HasColumnName("PasswordHash");
             modelBuilder.Entity<User>().Property("salt").HasColumnName("salt");
             // email юзера должен быть уникальным
-            modelBuilder.Entity<User>().HasIndex(prop => prop.Email).IsUnique();
+            modelBuilder.Entity<User>().HasAlternateKey(user => new { user.Email, user.Name });
         }
     }
 }
