@@ -41,8 +41,10 @@ namespace Cantina.Services
             // сохраняем в базе так же приватные поля
             modelBuilder.Entity<User>().Property("passwordHash").HasColumnName("PasswordHash");
             modelBuilder.Entity<User>().Property("salt").HasColumnName("salt");
-            // email юзера должен быть уникальным
-            modelBuilder.Entity<User>().HasAlternateKey(user => new { user.Email, user.Name });
+            modelBuilder.Entity<User>().Property("name").HasColumnName("Name").HasMaxLength(20).IsRequired();
+
+            modelBuilder.Entity<User>().HasAlternateKey(user => user.Email);        // email юзера - дополнительный ключ (уникальное поле)
+            modelBuilder.Entity<User>().HasIndex("name").IsUnique();                // никнейм должен быть уникальным
         }
     }
 }

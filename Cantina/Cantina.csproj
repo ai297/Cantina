@@ -4,14 +4,14 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Cantina</RootNamespace>
     <StartupObject></StartupObject>
-    <Version>0.0.0</Version>
+    <Version>0.0.1</Version>
     <Company>Cantina</Company>
     <Product>Cantina Chat</Product>
-    <Authors>ai297, Митрандир</Authors>
+    <Authors></Authors>
     <Description>Проект "Чат Кантина" - любительский проект вэб-чата для фанатов выдуманных миров</Description>
     <Copyright>(c) разработчики</Copyright>
-    <AssemblyVersion>0.0.0.1</AssemblyVersion>
-    <FileVersion>0.0.0.1</FileVersion>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
     <PackageId>Cantina</PackageId>
   </PropertyGroup>
 
@@ -29,6 +29,8 @@
     <Compile Remove="Migrations\20200116174108_Initial.Designer.cs" />
     <Compile Remove="Migrations\20200116175419_Initial.cs" />
     <Compile Remove="Migrations\20200116175419_Initial.Designer.cs" />
+    <Compile Remove="Migrations\20200116194846_updateNameField.cs" />
+    <Compile Remove="Migrations\20200116194846_updateNameField.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,5 +43,21 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.0" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <TypeScriptTarget>ES5</TypeScriptTarget>
+    <TypeScriptJSXEmit>React</TypeScriptJSXEmit>
+    <TypeScriptModuleKind />
+    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+    <TypeScriptRemoveComments>True</TypeScriptRemoveComments>
+    <TypeScriptOutFile />
+    <TypeScriptOutDir />
+    <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
+    <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+    <TypeScriptSourceMap>True</TypeScriptSourceMap>
+    <TypeScriptMapRoot />
+    <TypeScriptSourceRoot />
+  </PropertyGroup>
 
 </Project>

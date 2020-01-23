@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Cantina.Controllers;
 using Cantina.Services;
-using Cantina.Models;
 
 namespace Cantina
 {
@@ -25,74 +24,55 @@ namespace Cantina
         
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors();
-            // Контекст базы данных.
-            services.AddDbContext<DataContext>();
-            
-            // Сервис возвращает хэш-сумму для пароля. Просто для удобства. используется при регистрации и авторизации.
-            services.AddTransient<IHashService, HashPasswordService>();
-            
-            // Сервис авторизации юзеров с использованием токенов.
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-            {
-                options.RequireHttpsMetadata = false;   //TODO: заменить false на true
-                options.TokenValidationParameters = new TokenValidationParameters
+            services.AddCors();                                                     // Крос-доменные http запросы.
+            services.AddDbContext<DataContext>();                                   // Контекст базы данных.
+            services.AddTransient<IHashService, HashPasswordService>();             // Сервис возвращает хэш-сумму для пароля.
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)      // Сервис авторизации юзеров с использованием токенов.
+                .AddJwtBearer(options =>
                 {
-                    // Проверять ли издателя токена.
-                    ValidateIssuer = true,
-                    ValidIssuer = AuthOptions.Issuer,
-                    // Проверять ли аудиторию.
-                    ValidateAudience = false,
-                    // Проверка времени жизни токена.
-                    ValidateLifetime = true,
-                    // Ключ безопасности.
-                    IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(Configuration),
-                    // Проверка ключа безопасности.
-                    ValidateIssuerSigningKey = true
-                };
-                
-                // Если обращаемся к хабу, то токен надо получать из строки запроса, иначе из заголовка.
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
+                    options.RequireHttpsMetadata = false;   //TODO: заменить false на true
+                    options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        var accessToken = context.Request.Query["access_token"];
-                        var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(MainHub.path))
+                        ValidateIssuer = true,                                                  // Проверять ли издателя токена.
+                        ValidIssuer = AuthOptions.Issuer,                                       // Валидный издатель
+                        ValidateAudience = false,                                               // Проверять ли аудиторию.
+                        ValidateLifetime = true,                                                // Проверка времени жизни токена.
+                        IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(Configuration),  // Ключ безопасности.
+                        ValidateIssuerSigningKey = true                                         // Проверка ключа безопасности.
+                    };
+                
+                    // Если обращаемся к хабу, то токен надо получать из строки запроса, иначе из заголовка.
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
                         {
-                            context.Token = accessToken;
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(MainHub.path))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
                         }
-                        return Task.CompletedTask;
-                    }
-                };
+                    };
             });
-
-            // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
-            services.AddAuthorization(options =>
+            services.AddAuthorization(options =>                                    // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             {
                 // Политика для авторизации по рефреш-токену. Используется в контроллере авторизации для обновления access-токена.
                 options.AddPolicy(AuthOptions.ClaimUA, policy => policy.RequireClaim(AuthOptions.ClaimUA));
             });
-
-            // Сервис кеширования.
-            services.AddMemoryCache();
-            // Сервис для работы с юзерами с использованием кеша.
-            services.AddTransient<ICacheService<User>, UserCacheService>();
-
-            // Этот сервис хранит список посетителей онлайн.
-            services.AddSingleton<UsersOnlineService>();
-
-            // SignalR (для реал-тайм обмена сообщениями через WebSockets)
-            services.AddSignalR(hubOptions =>
+            services.AddMemoryCache();                                              // Сервис для работы с кешем.
+            services.AddScoped<UserService>();                                      // Сервис для работы с юзерами
+            services.AddSingleton<UsersOnlineService>();                            // Этот сервис хранит список посетителей онлайн.
+            services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
-                hubOptions.EnableDetailedErrors = true; // TODO: заменить на false;
-                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(5); // Если в течении 5 минут нет сообщений от клиента - закрыть соединение.
-                hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);     // Время ожидания подтверждения о подключении от юзера.
-                hubOptions.KeepAliveInterval = TimeSpan.FromMinutes(2);     // Частота отправки Ping-сообщений.
+                hubOptions.EnableDetailedErrors = true;                         // TODO: заменить на false;
+                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(10);    // Если в течении 10 минут нет сообщений от клиента - закрыть соединение.
+                hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
+                hubOptions.KeepAliveInterval = TimeSpan.FromMinutes(5);         // Частота отправки Ping-сообщений.
             });
-
-            // Используем контроллеры из архитектуры MVC (без View).
-            services.AddControllers();
+            services.AddControllers();                                              // Используем контроллеры из архитектуры MVC (без View).
+            services.AddTransient<TokenGenerator>();                                // генерирует токены авторизации
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -117,7 +97,6 @@ namespace Cantina
                 app.UseHsts();
                 app.UseHttpsRedirection();
             }
-
             app.UseRouting();                               // Подключаем маршрутизацию.
             app.UseAuthentication();                        // Используем аутентификацию
             app.UseAuthorization();                         // и авторизацию.

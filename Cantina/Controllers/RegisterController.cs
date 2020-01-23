@@ -29,6 +29,7 @@ namespace Cantina.Controllers
         public async Task<ActionResult> Post([FromBody] RegisterRequest request)
         {
             // 1. Проверяем корректность данных в запросе
+            // TODO: Сделать более строгую проверку на недопустимые значения
             if (!TryValidateModel(request, nameof(request)))
             {
                 return BadRequest(new ErrorResponse { Message = "Некорректные данные" });

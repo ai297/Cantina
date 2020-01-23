@@ -9,12 +9,12 @@ namespace Cantina.Models
     /// </summary>
     public class LocationAttribute : ValidationAttribute
     {
-        const string pattern = @"^\w{4,32}$";       // шаблон валидации
+        const string pattern = @"^[а-я\w\s]{4,32}$";       // шаблон валидации
 
         public override bool IsValid(object value)
         {
             // если строка пустая - всё впорядке
-            if (value == null) return true;
+            if (String.IsNullOrEmpty(value.ToString())) return true;
             // но если строка не пустая - должна соответствовать шаблону
             var locationPattern = new Regex(pattern, RegexOptions.IgnoreCase);
             return locationPattern.IsMatch(value.ToString());

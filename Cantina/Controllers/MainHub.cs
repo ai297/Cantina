@@ -20,14 +20,13 @@ namespace Cantina.Controllers
         public const string path = "/hub/main";
 
         UsersOnlineService onlineUsers;
-        ICacheService<User> userCacheService;
+        UserService userService;
 
-        public MainHub(UsersOnlineService onlineUsers, ICacheService<User> userCacheService)
+        public MainHub(UsersOnlineService onlineUsers, UserService userService)
         {
             // подключаем зависимости
-            this.onlineUsers = onlineUsers;                 // список юзеров онлайн
-            this.userCacheService = userCacheService;       // сервис кеширования юзеров
-
+            this.onlineUsers = onlineUsers;
+            this.userService = userService;
             // подписываемся на событие закрытия соединения
             onlineUsers.CloseConnection += this.closeCurrentConnection;
         }
@@ -40,7 +39,7 @@ namespace Cantina.Controllers
             // получаем Id текущего юзера.
             var userId = getCurrentUserId();
             // получаем юзера из кеша или из базы данных
-            var user = await userCacheService.Get(userId);
+            var user = await userService.GetUser(userId);
             // если юзер найден
             if(user != null)
             {

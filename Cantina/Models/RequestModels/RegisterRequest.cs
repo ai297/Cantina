@@ -15,6 +15,7 @@ namespace Cantina.Models
         public string Password { get; set; }
 
         public Gender Gender { get; set; }
+
         [Location]
         public string Location { get; set; }
     }

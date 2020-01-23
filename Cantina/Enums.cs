@@ -17,6 +17,7 @@
     {
         user,
         admin,
+        bot,
     }
 
     /// <summary>
@@ -44,6 +45,7 @@
     /// </summary>
     public enum UserOnlineStatus : byte
     {
+        Hidden,             // Невидим
         Online,             // Юзер в онлайне.
     }
 }
