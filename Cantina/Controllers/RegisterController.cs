@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Cantina.Services;
@@ -13,13 +12,11 @@ namespace Cantina.Controllers
     [AllowAnonymous]
     public class RegisterController : ApiBaseController
     {
-        DataContext database;
-        IHashService hashService;
+        UserService userService;
 
-        public RegisterController(DataContext db, IHashService hashService)
+        public RegisterController(DataContext db, UserService userService)
         {
-            this.database = db;
-            this.hashService = hashService;
+            this.userService = userService;
         }
 
         /// <summary>
@@ -29,41 +26,16 @@ namespace Cantina.Controllers
         public async Task<ActionResult> Post([FromBody] RegisterRequest request)
         {
             // 1. Проверяем корректность данных в запросе
-            // TODO: Сделать более строгую проверку на недопустимые значения
+            // TODO: Сделать более строгую проверку на недопустимые значения?
             if (!TryValidateModel(request, nameof(request)))
             {
-                return BadRequest(new ErrorResponse { Message = "Некорректные данные" });
+                return BadRequest(new ErrorResponse { Message = "Некорректные данные." });
             }
-
-            // 2. Шифруем пароль.
-            var hashedPassword = hashService.GetHash(request.Password);
-
-            // 3. Создаём нового юзера.
-            var profile = new UserProfile
-            {
-                Gender = request.Gender,
-                Location = request.Location,
-                RegisterDate = DateTime.UtcNow
-            };
-            var user = new User
-            {
-                Email = request.Email,
-                Name = request.Name,
-                Profile = profile
-            };
-            user.SetPasswordHash(hashedPassword.Item1, hashedPassword.Item2);
-
-            // 4. Сохраняем в базу
-            try
-            {
-                database.Users.Add(user);
-                await database.SaveChangesAsync();
-            }
-            catch
-            {
-                return BadRequest(new ErrorResponse { Message = "Ошибка записи в базу данных" });
-            }
-            return Ok();
+            // 2. Добавлем нового юзера.
+            var added = await userService.NewUser(request);
+            if(!added) return BadRequest(new ErrorResponse { Message = "Имя или e-mail уже зарегистрированы." });
+            else return Ok();
         }
+        
     }
 }

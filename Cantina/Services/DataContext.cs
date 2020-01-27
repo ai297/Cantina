@@ -23,7 +23,7 @@ namespace Cantina.Services
         public DataContext(DbContextOptions<DataContext> options, IConfiguration configuration) : base(options)
         {
             conf = configuration;
-//            Database.EnsureCreated();   // Создаёт базу данных, если её нет
+            Database.EnsureCreated();   // Создаёт базу данных, если её нет
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

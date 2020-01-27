@@ -5,45 +5,55 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Cantina.Models;
 using Cantina.Services;
+using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
     /// <summary>
-    /// Контроллер возвращает информацию о посетителе. Если вызывается без параметров - возвращает текущего юзера,
+    /// Контроллер профиля посетителя.
     /// если указан ID - возвращает конкретного юзера
     /// </summary>
     public class UserInfoController : ApiBaseController
     {
+        UsersOnlineService usersOnline;
+        UserService userService;
+        int currentUserId;
 
-        DataContext database;
-
-        public UserInfoController(DataContext dataContext)
+        public UserInfoController(UserService userService, UsersOnlineService usersOnline)
         {
-            this.database = dataContext;
+            this.userService = userService;
+            this.usersOnline = usersOnline;
+            currentUserId = Convert.ToInt32(HttpContext.User.FindFirst(AuthOptions.ClaimID).Value);
         }
 
+        /// <summary>
+        /// Профиль текущего авторизованного юзера
+        /// </summary>
         [HttpGet]
-        public ActionResult<User> Get()
+        public async Task<ActionResult<User>> Get()
         {
-            var ClaimId = HttpContext.User.FindFirst(AuthOptions.ClaimID).Value;
-            if (String.IsNullOrEmpty(ClaimId)) return BadRequest("User id is not set");
-
-            var user = GetUser(Convert.ToInt32(ClaimId));
-            if (user != null) return new ObjectResult(user);
-            else return NotFound();
+            var user = await userService.GetUser(currentUserId);
+            return Ok(user);
         }
 
+        /// <summary>
+        /// Публичный профиль юзера по Id
+        /// </summary>
         [HttpGet("{id}")]
         public ActionResult<User> Get(int id)
         {
-            var user = GetUser(id);
-            if (user != null) return new ObjectResult(user);
-            else return NotFound();
+            var user = usersOnline.GetUser(id);     // профиль юзера, который онлайн
+            //var user = await userService.GetUser(id);     // профиль любого юзера
+            if (user == null) return NotFound();
+            var userInfo = new UserInfoResponse
+            {
+                Name = user.Name,
+                OnlineStatus = (user.OnlineStatus == UserOnlineStatus.Hidden) ? UserOnlineStatus.Offline : user.OnlineStatus,
+                EnterTime = user.LastEnterTime,
+                Profile = user.Profile
+            };
+            return Ok(userInfo);
         }
 
-        private User GetUser(int userId)
-        {
-            return database.Users.SingleOrDefault<User>(u => u.Id == userId);
-        }
     }
 }

@@ -61,9 +61,13 @@ namespace Cantina
                 // Политика для авторизации по рефреш-токену. Используется в контроллере авторизации для обновления access-токена.
                 options.AddPolicy(AuthOptions.ClaimUA, policy => policy.RequireClaim(AuthOptions.ClaimUA));
             });
+            services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.
             services.AddMemoryCache();                                              // Сервис для работы с кешем.
-            services.AddScoped<UserService>();                                      // Сервис для работы с юзерами
+            services.AddTransient<UsersHistoryService>();                           // Сервис для работы с историй действий юзеров.
+            services.AddTransient<UserService>();                                   // Сервис для работы с юзерами
             services.AddSingleton<UsersOnlineService>();                            // Этот сервис хранит список посетителей онлайн.
+            services.AddScoped<ConnectionService>();                                // сервис обрабатывает подключения и отключения юзеров.
+            services.AddSingleton<MessagesService>();                               // Сервис обрабатывает сообщения в чате и сохраняет их в архив.
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
                 hubOptions.EnableDetailedErrors = true;                         // TODO: заменить на false;
@@ -72,7 +76,6 @@ namespace Cantina
                 hubOptions.KeepAliveInterval = TimeSpan.FromMinutes(5);         // Частота отправки Ping-сообщений.
             });
             services.AddControllers();                                              // Используем контроллеры из архитектуры MVC (без View).
-            services.AddTransient<TokenGenerator>();                                // генерирует токены авторизации
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

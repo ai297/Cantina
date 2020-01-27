@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Cantina.Models;
 
 namespace Cantina.Services
 {
@@ -11,7 +8,7 @@ namespace Cantina.Services
     public interface IHashService
     {
         // хэш + соль
-        public (string, string) GetHash(string password, string salt = null);
+        public HashedPassword GetHash(string str, string salt = null);
 
         // простой хэш
         public string SimpleHash(string str);

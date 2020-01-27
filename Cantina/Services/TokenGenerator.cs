@@ -34,9 +34,9 @@ namespace Cantina.Services
                 issuer: AuthOptions.Issuer,
                 claims: new Claim[]
                 {
-                    new Claim(AuthOptions.ClaimID, user.Id.ToString()),                                 // токен хранит Id юзера
-                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Email),                         // email в качестве username
-                    new Claim(ClaimsIdentity.DefaultRoleClaimType, user.Role.ToString())                // роль (админ / юзер)
+                    new Claim(AuthOptions.ClaimID, user.Id.ToString()),                                 // токен хранит Id юзера,
+                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Name),                          // имя юзера,
+                    new Claim(ClaimsIdentity.DefaultRoleClaimType, user.Role.ToString())                // роль (админ / юзер / бот)
                 },
                 expires: expires,
                 signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(configuration), AuthOptions.SecurityAlgorithm)

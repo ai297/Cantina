@@ -2,6 +2,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.Extensions.Configuration;
+using Cantina.Models;
 
 namespace Cantina.Services
 {
@@ -20,9 +21,9 @@ namespace Cantina.Services
         /// <summary>
         /// метод получает хэш пароля. если параметр salt не задан - генерирует рандомну "соль"
         /// </summary>
-        public (string, string) GetHash(string password, string salt = null)
+        public HashedPassword GetHash(string password, string salt = null)
         {
-            if (String.IsNullOrEmpty(password)) return (null, null);
+            if (String.IsNullOrEmpty(password)) return null;
             if (String.IsNullOrEmpty(salt)) salt = CreateSalt();
             
             string localKey = configuration["LOCAL_KEY"];    // дополнительная приписка к паролю, которая не хранится в бд
@@ -35,7 +36,7 @@ namespace Cantina.Services
                 iterationCount: 499,
                 numBytesRequested: 256 / 8));
 
-            return (hashedPassword, salt);
+            return new HashedPassword { Hash = hashedPassword, Salt = salt };
         }
 
         private string CreateSalt()

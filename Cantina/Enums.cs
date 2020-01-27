@@ -45,7 +45,18 @@
     /// </summary>
     public enum UserOnlineStatus : byte
     {
-        Hidden,             // Невидим
+        Hidden,             // Невидим.
+        Offline,            // Юзер не в сети.
         Online,             // Юзер в онлайне.
+    }
+
+    /// <summary>
+    /// Типы сообщений.
+    /// </summary>
+    public enum MessageTypes : byte
+    {
+        System,         // Системное уведомление.
+        Base,           // Обычное сообщение, которое видят все.
+        Privat,         // Личное сообщение, которое видят только отправитель и получатель.
     }
 }

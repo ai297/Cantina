@@ -41,6 +41,7 @@ namespace Cantina.Models
         /// </summary>
         public bool Active { get; set; } = true;
 
+        #region Пароль
         // Пароль, хранится в зашифрованном виде. Обязательное свойство.
         [Required]
         [MaxLength(128)]
@@ -49,6 +50,22 @@ namespace Cantina.Models
         [Required]
         [MaxLength(64)]
         private string salt;
+        /// <summary>
+        /// Возвращает хэш пароля и соль.
+        /// </summary>
+        public HashedPassword GetHashedPassword()
+        {
+            return new HashedPassword { Hash = passwordHash, Salt = salt };
+        }
+        /// <summary>
+        /// Устанавливает значение хэша пароля и соль.
+        /// </summary>
+        public void SetPasswordHash(HashedPassword hashedPassword)
+        {
+            this.passwordHash = hashedPassword.Hash;
+            this.salt = hashedPassword.Salt;
+        }
+        #endregion
 
         /// <summary>
         /// Роль юзера
@@ -66,21 +83,20 @@ namespace Cantina.Models
         /// </summary>
         public virtual List<UserHistory> History { get; set; }
 
+        #region данные об онлайн-юзере
         /// <summary>
-        /// Метод возвращает множество из 2х строк - хэш пароля и соль.
+        /// Id подключения клиента юзера к хабу. Один юзер может иметь только одно подключение.
+        /// При попытке зайти в чат из новой вкладки или с другого устройства - старое подключение будет закрыто.
         /// </summary>
-        public (string, string) GetPasswordHash()
-        {
-            return (passwordHash, salt);
-        }
+        [NotMapped]
+        public string HubConnectionId { get; set; }
+        [NotMapped]
+        public UserOnlineStatus OnlineStatus { get; set; } = UserOnlineStatus.Offline;
         /// <summary>
-        /// Метод устанавливает значение хэша пароля и соль.
+        /// Дата последнего визита
         /// </summary>
-        public void SetPasswordHash(string hash, string salt)
-        {
-            this.passwordHash = hash;
-            this.salt = salt;
-        }
+        public DateTime LastEnterTime { get; set; }
+        #endregion
 
         private string NameConverter(string name)
         {

@@ -47,19 +47,6 @@ namespace Cantina.Models
         private string messageStyle; // стиль сообщений в сериализованном виде
 
         /// <summary>
-        /// Дата регистрации
-        /// </summary>
-        [Required]
-        [Column(TypeName ="date")]
-        public DateTime RegisterDate { get; set; }
-
-        /// <summary>
-        /// Дата последнего визита
-        /// </summary>
-        [Column(TypeName ="date")]
-        public DateTime? LastEnterDate { get; set; }
-
-        /// <summary>
         /// Количество минут, проведённых онлайн
         /// </summary>
         public int OnlineTime { get; set; }

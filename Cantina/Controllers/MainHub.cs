@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Cantina.Models;
 using Cantina.Services;
-using Cantina.Models.Messages;
+using Cantina.Models;
 
 namespace Cantina.Controllers
 {
@@ -18,33 +16,44 @@ namespace Cantina.Controllers
     {
         // адрес для данного хаба
         public const string path = "/hub/main";
-
+        // сервисы
         UsersOnlineService onlineUsers;
-        UserService userService;
+        ConnectionService connectionService;
+        MessagesService messagesService;
 
-        public MainHub(UsersOnlineService onlineUsers, UserService userService)
+        public MainHub(UsersOnlineService onlineUsers, ConnectionService connectionService, MessagesService messagesService)
         {
             // подключаем зависимости
             this.onlineUsers = onlineUsers;
-            this.userService = userService;
+            this.connectionService = connectionService;
+            this.messagesService = messagesService;
             // подписываемся на событие закрытия соединения
             onlineUsers.CloseConnection += this.closeCurrentConnection;
         }
-        
+
+        /// <summary>
+        /// Метод для отправки сообщений
+        /// </summary>
+        //public async Task SendMessage(MessageRequest messageRequest)
+        //{
+
+        //}
+        /// <summary>
+        /// Метод отправляет последние n сообщений обратившемуся к нему юзеру.
+        /// </summary>
+        //public async Task GetMessages(int n)
+        //{
+
+        //}
+
+        #region Подключение - отключение
         /// <summary>
         /// Метод срабатывает при подключении нового клиента
         /// </summary>
         public override async Task OnConnectedAsync()
         {
-            // получаем Id текущего юзера.
-            var userId = getCurrentUserId();
-            // получаем юзера из кеша или из базы данных
-            var user = await userService.GetUser(userId);
-            // если юзер найден
-            if(user != null)
-            {
-                onlineUsers.UserConnect(user, Context.ConnectionId);    // добавляем в список онлайна
-            }
+            connectionService.UserConnect(getCurrentUserId(), Context.ConnectionId);
+            await base.OnConnectedAsync();
         }
 
         /// <summary>
@@ -52,42 +61,28 @@ namespace Cantina.Controllers
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-
+            connectionService.UserDisconnect(getCurrentUserId(), Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
         }
 
-
-        public async Task PublicMessage(PublicMessage message)
+        protected override void Dispose(bool disposing)
         {
-            // 1. Проверка разрешений юзера на выполнение команды
-            // 2. Формирование сообщения
-            // 3. Рассылка сообщения получателям
-            // 4. Запись в архив.
+            if(disposing) onlineUsers.CloseConnection -= this.closeCurrentConnection;
         }
+        #endregion
 
-        /// <summary>
-        /// Приватное сообщение пересылается конкретному посетителю, не отправляется в архив.
-        /// </summary>
-        public async Task PrivateMessage(PrivateMessage message)
-        {
+        #region Текущее соединение
 
-        }
-
-        /// <summary>
-        /// Системное сообщение, пересылается всем посетителям.
-        /// </summary>
-        public async Task SystemMessage(SystemMessage message)
-        {
-
-        }
-
-        /// <summary>
-        /// Метод получает Id текущего аторизованного юзера из контекста.
-        /// </summary>
         private int getCurrentUserId()
         {
             var ClaimId = Context.User.FindFirstValue(AuthOptions.ClaimID);
             if (!String.IsNullOrEmpty(ClaimId)) return Convert.ToInt32(ClaimId);
             else return 0;
+        }
+
+        private string getCurrentUserName()
+        {
+            return Context.User.Identity.Name;
         }
         /// <summary>
         /// Метод завершает соединение с заданным Id
@@ -97,5 +92,7 @@ namespace Cantina.Controllers
             // Если Id текущего подключения совпадает с запросом, то закрываем соединение.
             if (connectionId.Equals(Context.ConnectionId)) Context.Abort();
         }
+
+        #endregion
     }
 }

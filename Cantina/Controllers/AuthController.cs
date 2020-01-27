@@ -18,11 +18,13 @@ namespace Cantina.Controllers
     {
         UserService userService;
         TokenGenerator tokenGenerator;
+        IHashService hashService;
 
-        public AuthController(UserService userService, TokenGenerator tokenGenerator)
+        public AuthController(UserService userService, TokenGenerator tokenGenerator, IHashService hashService)
         {
             this.userService = userService;
             this.tokenGenerator = tokenGenerator;
+            this.hashService = hashService;
         }
 
         /// <summary>
@@ -34,9 +36,14 @@ namespace Cantina.Controllers
         public async Task<ActionResult<TokenResponse>> Login([FromBody] LoginRequest request)
         {
             // Ищем юзера по email и проверяем пароль.
-            var user = await userService.GetUser(request);
+            var user = await userService.GetUser(request.Email);
             // Если не нашли - не авторизован.
-            if (user == null) return Unauthorized(new ErrorResponse { Message = "Неверный логин или пароль." });
+            if (user == null) return Unauthorized(new ErrorResponse { Message = "Неверный логин" });
+            // Сравниваем хэши паролей.
+            var userHashedPassword = user.GetHashedPassword();
+            var hashedPassword = hashService.GetHash(request.Password, userHashedPassword.Salt);
+            if(!userHashedPassword.Hash.Equals(hashedPassword.Hash)) return Unauthorized(new ErrorResponse { Message = "Неверный пароль" });
+            // Возвращаем токены.
             var userAgent = HttpContext.Request.Headers["User-Agent"];
             return Ok(tokenGenerator.GetTokenResponse(user, userAgent));
         }
@@ -46,7 +53,7 @@ namespace Cantina.Controllers
         /// </summary>
         [HttpGet]
         [Authorize(Policy = AuthOptions.ClaimUA)]
-        public async Task<ActionResult<TokenResponse>> Refresh([FromServices] IHashService hashService)
+        public async Task<ActionResult<TokenResponse>> Refresh()
         {
             // получаем информацию о юзере из клэймов, сохранённых в токене
             var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.ClaimID);
@@ -69,7 +76,7 @@ namespace Cantina.Controllers
             if (user == null || !user.Active || !user.Confirmed) return Unauthorized();
             // если юзер изменил email то рефреш-токен не действителен
             if (user.Email != ClaimName) return Unauthorized();
-            
+
             // если всё впорядке - обновляем и возвращаем оба токена
             return Ok(tokenGenerator.GetTokenResponse(user, userAgent));
         }

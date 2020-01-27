@@ -15,29 +15,40 @@ namespace Cantina.Services
         private DataContext database;
         private IHashService hashService;
         private IMemoryCache memoryCache;
+        private UsersHistoryService historyService;
         
-        public UserService(DataContext context, IHashService hashService, IMemoryCache cache)
+        public UserService(DataContext context, IHashService hashService, IMemoryCache cache, UsersHistoryService historyService)
         {
-            this.database = context;            // подключаем сервис контекста базы данных
-            this.hashService = hashService;     // сервивс хэширования
-            this.memoryCache = cache;           // сервис кеширования
+            this.database = context;                // подключаем сервис контекста базы данных
+            this.hashService = hashService;         // сервивс хэширования
+            this.memoryCache = cache;               // сервис кеширования
+            this.historyService = historyService;   // сервис логгирования активностей
         }
         
         /// <summary>
-        /// Метод добавляет нового юзера в базу данных
+        /// Метод создаёт нового юзера на основе полученных данных.
         /// </summary>
-        public async Task<bool> AddUser(User user)
+        public async Task<bool> NewUser(RegisterRequest request)
         {
-            // добавляем юзера в базу данных
-            database.Users.Add(user);
-            var added = await database.SaveChangesAsync();
-            // если хоть какой-то юзер в базу добавлен - добавляем его так же в кэш и возвращаем true
-            if (added > 0)
+            // Создаём юзера.
+            var user = new User
             {
-                addToCache(user);
-                return true;
-            }
-            return false;
+                Email = request.Email,
+                Name = request.Name,
+                Profile = new UserProfile
+                {
+                    Gender = request.Gender,
+                    Location = request.Location
+                }
+            };
+            // Хэшируем пароль.
+            var hashedPassword = hashService.GetHash(request.Password);
+            user.SetPasswordHash(hashedPassword);
+            // Сохраняем в базу.
+            var result = await addUser(user);
+            // Добавляем запись о регистрации в историю активностей юзера
+            if (result) historyService.NewActivityAsync(user, ActivityTypes.Register);
+            return result;
         }
 
         /// <summary>
@@ -64,44 +75,23 @@ namespace Cantina.Services
             return user;
         }
         /// <summary>
-        /// Находит юзера по email и возвращает только если верный пароль
-        /// </summary>
-        public async Task<User> GetUser(LoginRequest request)
-        {
-            // TODO: возможно нужны доп проверки на корректность request
-            var user = await GetUser(request.Email);
-            // если юзера нашли - проверяем пароль и если всё ок - возвращаем его, иначе возвращаем null
-            if (user != null)
-            {
-                var userAuth = user.GetPasswordHash();
-                if (userAuth.Item1 == hashService.GetHash(request.Password, userAuth.Item2).Item1 && user.Confirmed && user.Active)
-                {
-                    return user;
-                }
-            }
-            return null;
-        }
-
-
-        /// <summary>
         /// Метод обновляет информацию о юзере в базе
         /// </summary>
-        public async Task<bool> Update(User user)
+        public async void UpdateUserAsync(User user)
         {
             // если юзер не задан или его id равен 0 (не существует в базе данных) - ничего не делаем
-            if (user == null || user.Id == 0) return false;
+            if (user == null || user.Id == 0) return;
             // обновляем юзера в базе данных
             database.Users.Update(user);
             var updated = await database.SaveChangesAsync();
-            // если удалось обновить в базе - обновляем кеш и возвращаем true
+            // если удалось обновить в базе - обновляем кеш
             if (updated > 0)
             {
                 addToCache(user);
-                return true;
             }
-            return false;
         }
 
+        // метод добавляет юзера в кеш
         private void addToCache(User user)
         {
             if (user != null)
@@ -112,6 +102,25 @@ namespace Cantina.Services
                 });
             }
         }
-
+        // метод добавляет нового юзера в базу
+        private async Task<bool> addUser(User user)
+        {
+            try
+            {
+                // добавляем юзера в базу данных
+                database.Users.Add(user);
+                var added = await database.SaveChangesAsync();
+                // если хоть какой-то юзер в базу добавлен - добавляем его так же в кэш и возвращаем true
+                if (added > 0)
+                {
+                    addToCache(user);
+                    return true;
+                } else return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
