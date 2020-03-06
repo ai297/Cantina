@@ -70,7 +70,7 @@ namespace Cantina.Models
         /// <summary>
         /// Роль юзера
         /// </summary>
-        public UserRoles Role { get; set; } = UserRoles.user;
+        public UserRoles Role { get; set; } = UserRoles.guest;
 
         /// <summary>
         /// Профиль юзера.

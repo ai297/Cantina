@@ -40,7 +40,7 @@ namespace Cantina
                         IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(Configuration),  // Ключ безопасности.
                         ValidateIssuerSigningKey = true                                         // Проверка ключа безопасности.
                     };
-                
+
                     // Если обращаемся к хабу, то токен надо получать из строки запроса, иначе из заголовка.
                     options.Events = new JwtBearerEvents
                     {
@@ -48,14 +48,14 @@ namespace Cantina
                         {
                             var accessToken = context.Request.Query["access_token"];
                             var path = context.HttpContext.Request.Path;
-                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(MainHub.path))
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(MainHub.PATH))
                             {
                                 context.Token = accessToken;
                             }
                             return Task.CompletedTask;
                         }
                     };
-            });
+                });
             services.AddAuthorization(options =>                                    // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             {
                 // Политика для авторизации по рефреш-токену. Используется в контроллере авторизации для обновления access-токена.
@@ -86,13 +86,6 @@ namespace Cantina
             {
                 // Вывод сообщений об ошибках, если приложение на стадии разработки.
                 app.UseDeveloperExceptionPage();
-                // крос-доменные запросы.
-                // TODO: Безопасно настроить политику крос-доменных запросов
-                app.UseCors(builder => 
-                    builder.AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    );
             }
             else
             {
@@ -101,14 +94,23 @@ namespace Cantina
                 app.UseHttpsRedirection();
             }
             app.UseRouting();                               // Подключаем маршрутизацию.
+
+            // крос-доменные запросы.
+            // TODO: Безопасно настроить политику крос-доменных запросов
+            app.UseCors(builder =>
+                builder.WithOrigins("http://localhost:8080")
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+                );
+
             app.UseAuthentication();                        // Используем аутентификацию
             app.UseAuthorization();                         // и авторизацию.
-            app.UseFileServer();                            // Используем статические файлы (вэб-клиент).
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();                 // Маршрутизация на контроллеры на основе атрибутов.
-                endpoints.MapHub<MainHub>(MainHub.path);    // Хаб, принимает и пересылает сообщения.
+                endpoints.MapHub<MainHub>(MainHub.PATH);    // Хаб, принимает и пересылает сообщения.
             });
 
         }

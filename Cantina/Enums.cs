@@ -15,6 +15,7 @@
     /// </summary>
     public enum UserRoles : byte
     {
+        guest,
         user,
         admin,
         bot,
@@ -30,15 +31,6 @@
         ChangeName,         // Смена никнейма.
     }
 
-    /// <summary>
-    /// Варианты размера шрифта в стиле сообщения.
-    /// </summary>
-    public enum FontSizes : byte
-    {
-        Small,              // Я-всех-стесняюсь мелкий шрфит.
-        Medium,             // Стандартный размер шрифта.
-        Large,              // Хочу-быть-заметным крупный шрифт.
-    }
 
     /// <summary>
     /// Статус пользователя в онлайне.

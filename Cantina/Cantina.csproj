@@ -16,13 +16,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="webclient\js\**" />
-    <Content Remove="webclient\js\**" />
-    <EmbeddedResource Remove="webclient\js\**" />
-    <None Remove="webclient\js\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="Migrations\20200116173206_Init.cs" />
     <Compile Remove="Migrations\20200116173206_Init.Designer.cs" />
     <Compile Remove="Migrations\20200116174108_Initial.cs" />

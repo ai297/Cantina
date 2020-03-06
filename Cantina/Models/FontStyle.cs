@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,13 +17,8 @@ namespace Cantina.Models
         public string Family { get; set; }
 
         /// <summary>
-        /// Размер шрифта, один из предустановленных вариантов.
+        /// Цвет шрифта
         /// </summary>
-        public FontSizes Size { get; set; }
-
-        /// <summary>
-        /// Цвет шрифта в hex формате.
-        /// </summary>
-        public int Color { get; set; }
+        public Color Color { get; set; }
     }
 }

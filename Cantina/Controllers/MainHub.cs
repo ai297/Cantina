@@ -11,11 +11,11 @@ namespace Cantina.Controllers
     /// <summary>
     /// Основной хаб чата. Принимает и пересылает сообщения
     /// </summary>
-    [Authorize]
+    [AllowAnonymous]
     public class MainHub : Hub
     {
         // адрес для данного хаба
-        public const string path = "/hub/main";
+        public const string PATH = "/hub/main";
         // сервисы
         UsersOnlineService onlineUsers;
         ConnectionService connectionService;

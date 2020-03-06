@@ -21,7 +21,6 @@ namespace Cantina
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                    webBuilder.UseWebRoot("webclient");     // папка со статическими файлами (вэб-клиент)
                 });
     }
 }
