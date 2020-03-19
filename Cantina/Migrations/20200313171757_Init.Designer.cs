@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cantina.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20200116180229_Initial")]
-    partial class Initial
+    [Migration("20200313171757_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -20,6 +20,21 @@ namespace Cantina.Migrations
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
                 .HasAnnotation("ProductVersion", "3.1.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Name");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ForbiddenNames");
+                });
 
             modelBuilder.Entity("Cantina.Models.User", b =>
                 {
@@ -31,6 +46,9 @@ namespace Cantina.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("Birthday")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<bool>("Confirmed")
                         .HasColumnType("boolean");
 
@@ -39,29 +57,42 @@ namespace Cantina.Migrations
                         .HasColumnType("character varying(64)")
                         .HasMaxLength(64);
 
+                    b.Property<DateTime?>("EndBlockDate")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<byte>("Gender")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("character varying(32)")
+                        .HasMaxLength(32);
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("character varying(20)")
-                        .HasMaxLength(20);
+                        .HasColumnType("text");
+
+                    b.Property<int>("OnlineTime")
+                        .HasColumnType("integer");
 
                     b.Property<byte>("Role")
                         .HasColumnType("smallint");
 
-                    b.Property<string>("passwordHash")
+                    b.Property<string>("password")
                         .IsRequired()
-                        .HasColumnName("PasswordHash")
+                        .HasColumnName("Password")
                         .HasColumnType("character varying(128)")
                         .HasMaxLength(128);
 
-                    b.Property<string>("salt")
-                        .IsRequired()
-                        .HasColumnName("salt")
-                        .HasColumnType("character varying(64)")
-                        .HasMaxLength(64);
+                    b.Property<string>("settings")
+                        .HasColumnName("Settings")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Email", "Name");
+                    b.HasAlternateKey("Email");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -93,43 +124,13 @@ namespace Cantina.Migrations
                     b.ToTable("History");
                 });
 
-            modelBuilder.Entity("Cantina.Models.User", b =>
+            modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
                 {
-                    b.OwnsOne("Cantina.Models.UserProfile", "Profile", b1 =>
-                        {
-                            b1.Property<int>("UserId")
-                                .HasColumnType("integer");
-
-                            b1.Property<DateTime?>("Birthday")
-                                .HasColumnType("timestamp without time zone");
-
-                            b1.Property<byte>("Gender")
-                                .HasColumnType("smallint");
-
-                            b1.Property<DateTime?>("LastEnterDate")
-                                .HasColumnType("date");
-
-                            b1.Property<string>("Location")
-                                .HasColumnType("character varying(32)")
-                                .HasMaxLength(32);
-
-                            b1.Property<int>("OnlineTime")
-                                .HasColumnType("integer");
-
-                            b1.Property<DateTime>("RegisterDate")
-                                .HasColumnType("date");
-
-                            b1.Property<string>("messageStyle")
-                                .HasColumnName("Profile_MessageStyle")
-                                .HasColumnType("text");
-
-                            b1.HasKey("UserId");
-
-                            b1.ToTable("Users");
-
-                            b1.WithOwner()
-                                .HasForeignKey("UserId");
-                        });
+                    b.HasOne("Cantina.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Cantina.Models.UserHistory", b =>

@@ -15,10 +15,9 @@
     /// </summary>
     public enum UserRoles : byte
     {
-        guest,
-        user,
-        admin,
-        bot,
+        User = 10,
+        Admin = 50,
+        Bot = 100,
     }
 
     /// <summary>
@@ -27,8 +26,10 @@
     public enum ActivityTypes : byte
     {
         Register,           // Регистрация аккаунта.
-        Visit,              // Посещение чата.
+        ChangeEmail,        // Смена e-mail'a.
         ChangeName,         // Смена никнейма.
+        Activation,         // Активация аккаунта.
+        Visit = 100,        // Посещение чата.
     }
 
 
@@ -38,17 +39,18 @@
     public enum UserOnlineStatus : byte
     {
         Hidden,             // Невидим.
-        Offline,            // Юзер не в сети.
         Online,             // Юзер в онлайне.
+        Absentee,           // Отошедший
     }
 
     /// <summary>
-    /// Типы сообщений.
+    /// Типы сообщений
     /// </summary>
-    public enum MessageTypes : byte
+    public enum MessageTypes: byte
     {
-        System,         // Системное уведомление.
-        Base,           // Обычное сообщение, которое видят все.
-        Privat,         // Личное сообщение, которое видят только отправитель и получатель.
+        System,
+        Base,
+        Privat,
+        ThirdPerson,
     }
 }

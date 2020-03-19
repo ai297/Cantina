@@ -4,23 +4,21 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Cantina.Services;
-using Cantina.Models;
+using Cantina.Models.Requests;
 
 namespace Cantina.Controllers
 {
 
     /// <summary>
-    /// Контроллер авторизации. Возвращает JWT (токен авторизации) в обмен на валидные login/password или действующий RefreshToken
+    /// Контроллер авторизации. Возвращает JWT (токен авторизации) в обмен на валидные login/password
     /// </summary>
-    [Route("api/[controller]/[action]")]
-    [ApiController]
-    public class AuthController : Controller
+    public class AuthController : ApiBaseController
     {
         UserService userService;
         TokenGenerator tokenGenerator;
-        IHashService hashService;
+        HashService hashService;
 
-        public AuthController(UserService userService, TokenGenerator tokenGenerator, IHashService hashService)
+        public AuthController(UserService userService, TokenGenerator tokenGenerator, HashService hashService)
         {
             this.userService = userService;
             this.tokenGenerator = tokenGenerator;
@@ -28,57 +26,56 @@ namespace Cantina.Controllers
         }
 
         /// <summary>
-        /// Метод доступен по адресу Auth/Login. Ищет юзера в бд по email и поверяет пароль. В случае успеха возвращает токен авторизации.
+        /// Метод ищет юзера в бд по email и поверяет пароль. В случае успеха возвращает токен авторизации.
         /// </summary>
         /// <param name="request">Email и Password в теле запроса.</param>
-        [HttpPost]
         [AllowAnonymous]
-        public async Task<ActionResult<TokenResponse>> Login([FromBody] LoginRequest request)
+        [HttpPost]
+        public ActionResult GetToken([FromBody] LoginRequest request)
         {
+            // проверяем запрос
+            if (!TryValidateModel(request, nameof(request))) return BadRequest("Некорректные данные.");
             // Ищем юзера по email и проверяем пароль.
-            var user = await userService.GetUser(request.Email);
-            // Если не нашли - не авторизован.
-            if (user == null) return Unauthorized(new ErrorResponse { Message = "Неверный логин" });
-            // Сравниваем хэши паролей.
-            var userHashedPassword = user.GetHashedPassword();
-            var hashedPassword = hashService.GetHash(request.Password, userHashedPassword.Salt);
-            if(!userHashedPassword.Hash.Equals(hashedPassword.Hash)) return Unauthorized(new ErrorResponse { Message = "Неверный пароль" });
-            // Возвращаем токены.
-            var userAgent = HttpContext.Request.Headers["User-Agent"];
-            return Ok(tokenGenerator.GetTokenResponse(user, userAgent));
+            var user = userService.GetUser(request.Email);
+            // Если не нашли или не совпадает пароль - не авторизован.
+            if (user == null || !user.PasswordEqual(hashService.Get256Hash(request.Password))) return Unauthorized("Неверный логин или пароль");
+            // Если аккаунт заблокирован
+            if (!user.Active) return Forbid();
+            if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
+            // Генерируем и возвращаем токен
+            var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
+            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent) });
         }
 
         /// <summary>
-        /// Метод Auth/Refresh проверяет рефреш-токен и в случае его валидности - обновляет токен авторизации и сам рефреш-токен.
+        /// Метод обновляет токен авторизации
         /// </summary>
         [HttpGet]
-        [Authorize(Policy = AuthOptions.ClaimUA)]
-        public async Task<ActionResult<TokenResponse>> Refresh()
+        public ActionResult GetNewToken()
         {
             // получаем информацию о юзере из клэймов, сохранённых в токене
-            var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.ClaimID);
-            var ClaimUA = HttpContext.User.FindFirstValue(AuthOptions.ClaimUA);
-            var ClaimName = HttpContext.User.FindFirstValue(ClaimsIdentity.DefaultNameClaimType);
+            var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.Claims.ID);
+            var ClaimUA = HttpContext.User.FindFirstValue(AuthOptions.Claims.UserAgent);
+            var ClaimLogin = HttpContext.User.FindFirstValue(AuthOptions.Claims.Login);
 
-            var userAgent = HttpContext.Request.Headers["User-Agent"];
-            var hashedUserAgent = hashService.SimpleHash(userAgent);
+            var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
 
-            // если не установлен claim с Id пользователя или маркер рефреш-токена (юзер агент)
+            // если не установлен claim с Id пользователя
             // или значение клэйма юзер-агента не равно текущему хэшу User-Agent (другой браузер или другое устройство)
             // то возвращаем код 401
             if (String.IsNullOrEmpty(ClaimId) ||
                 String.IsNullOrEmpty(ClaimUA) ||
-                ClaimUA != hashedUserAgent) return Unauthorized();
+                !ClaimUA.Equals(userAgent)) return Unauthorized();
 
             // ищем юзера по Id
-            var user = await userService.GetUser(Convert.ToInt32(ClaimId));
+            var user = userService.GetUser(Convert.ToInt32(ClaimId));
             // если юзер не найден или аккаунт не подтверждён / не активен
             if (user == null || !user.Active || !user.Confirmed) return Unauthorized();
             // если юзер изменил email то рефреш-токен не действителен
-            if (user.Email != ClaimName) return Unauthorized();
+            if (!user.Email.Equals(ClaimLogin)) return Unauthorized();
 
             // если всё впорядке - обновляем и возвращаем оба токена
-            return Ok(tokenGenerator.GetTokenResponse(user, userAgent));
+            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent) });
         }
     }
 }

@@ -17,8 +17,7 @@
       "launchBrowser": true,
       "environmentVariables": {
         "SECURITY_KEY": "kSLwnw&6alq238WoWQ91J1DojjdAOA0*y1$UHW28~",
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "LOCAL_KEY": "jK%2k"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
     "CantinaServer": {

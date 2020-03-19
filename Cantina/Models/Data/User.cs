@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -7,127 +8,110 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Cantina.Models
 {
     /// <summary>
-    /// Базовая сущность юзера, хранит данные для авторизации.
+    /// Пользователь
     /// </summary>
     public class User
     {
-        /// <summary>
-        /// Уникальный идентификатор юзера.
-        /// </summary>
         public int Id { get; set; }
         
         /// <summary>
-        /// e-mail юзера, обязательно. Используется для авторизации вместо логина.
+        /// E-mail юзера, обязательно. Используется для авторизации вместо логина.
         /// </summary>
         [Required, EmailAddress]
         [MaxLength(64)]
         public string Email { get; set; }
 
-        private string name;
         /// <summary>
-        /// Никнейм, дополнительно обрабатывается для уменьшения вероятности совпадения
+        /// Никнейм
         /// </summary>        
-        [NotMapped]
         [Required, Nickname]
-        public string Name { get => name; set => name = NameConverter(value); }
+        public string Name { get; set; }
 
         /// <summary>
-        /// Подтверждён ли аккаунт. Если аккаунт не подтверждён - использовать его нельзя.
+        /// Подтверждён ли аккаунт. Сбрасывать на false при смене email'a.
         /// </summary>
         public bool Confirmed { get; set; } = false;
 
         /// <summary>
-        /// Активен лиаккаунт. если нет - использовать его нельзя.
+        /// Активен лиаккаунт. Если нет - использовать его нельзя.
         /// </summary>
         public bool Active { get; set; } = true;
 
-        #region Пароль
-        // Пароль, хранится в зашифрованном виде. Обязательное свойство.
         [Required]
         [MaxLength(128)]
-        private string passwordHash;
-        // "Соль" - приписка к паролю, что бы сложнее было подобрать.
-        [Required]
-        [MaxLength(64)]
-        private string salt;
+        private string password;
         /// <summary>
-        /// Возвращает хэш пароля и соль.
+        /// Сеттер для пароля
         /// </summary>
-        public HashedPassword GetHashedPassword()
+        /// <param name="hash">Хэш пароля</param>
+        public void SetPassword(string hash)
         {
-            return new HashedPassword { Hash = passwordHash, Salt = salt };
+            password = hash;
         }
         /// <summary>
-        /// Устанавливает значение хэша пароля и соль.
+        /// Сравнение хэша пароля
         /// </summary>
-        public void SetPasswordHash(HashedPassword hashedPassword)
+        /// <param name="value">хэш строка пароля для сравнения</param>
+        /// <returns></returns>
+        public bool PasswordEqual(string value)
         {
-            this.passwordHash = hashedPassword.Hash;
-            this.salt = hashedPassword.Salt;
+            return password.Equals(value);
         }
-        #endregion
 
         /// <summary>
         /// Роль юзера
         /// </summary>
-        public UserRoles Role { get; set; } = UserRoles.guest;
+        public UserRoles Role { get; set; } = UserRoles.User;
 
         /// <summary>
-        /// Профиль юзера.
+        /// Пол, по умолчанию - не определившийся
         /// </summary>
-        [Required]
-        public UserProfile Profile { get; set; }
+        public Gender Gender { get; set; } = Gender.Uncertain;
+
+        /// <summary>
+        /// Откуда юзер
+        /// </summary>
+        [Location]
+        [MaxLength(32)]
+        public string Location { get; set; }
+
+        /// <summary>
+        /// Дата рождения
+        /// </summary>
+        public DateTime? Birthday { get; set; }
+
+        /// <summary>
+        /// Количество минут, проведённых онлайн
+        /// </summary>
+        public int OnlineTime { get; set; }
+
+        /// <summary>
+        /// Дата окончания блокировки
+        /// </summary>
+        public DateTime? EndBlockDate { get; set; }
+
+        /// <summary>
+        /// Настройки профиля.
+        /// </summary>
+        [NotMapped]
+        public UserSettings Settings
+        {
+            get
+            {
+                if (!String.IsNullOrEmpty(settings)) return JsonSerializer.Deserialize<UserSettings>(settings);
+                else return new UserSettings();
+            }
+            set
+            {
+                settings = JsonSerializer.Serialize<UserSettings>(value);
+            }
+        }
+        private string settings; // Настройки юзера в сериализованном виде
 
         /// <summary>
         /// Навигационное свойство ссылается на историю действий юзера.
         /// </summary>
         public virtual List<UserHistory> History { get; set; }
 
-        #region данные об онлайн-юзере
-        /// <summary>
-        /// Id подключения клиента юзера к хабу. Один юзер может иметь только одно подключение.
-        /// При попытке зайти в чат из новой вкладки или с другого устройства - старое подключение будет закрыто.
-        /// </summary>
-        [NotMapped]
-        public string HubConnectionId { get; set; }
-        [NotMapped]
-        public UserOnlineStatus OnlineStatus { get; set; } = UserOnlineStatus.Offline;
-        /// <summary>
-        /// Дата последнего визита
-        /// </summary>
-        public DateTime LastEnterTime { get; set; }
-        #endregion
-
-        private string NameConverter(string name)
-        {
-            /* Словарь для замены букв в именах
-             * В качестве ключа идут буквы кириллицы
-             * В качестве значения - аналогичные буквы латиницы.
-             * В конечном варианте все имена в базу сохраняются с
-             * английскими буквами вместо похожих на них русскими */
-            var glossary = new Dictionary<char, char>()
-            {
-                { 'А', 'A' }, { 'а','a' },
-                { 'В', 'B' },
-                { 'Е', 'E' }, { 'е', 'e' },
-                { 'К', 'K' },
-                { 'М', 'M' },
-                { 'Н', 'H' },
-                { 'О', 'O' }, { 'о', 'o' },
-                { 'Р', 'P' }, { 'р', 'p' },
-                { 'С', 'C' }, { 'с', 'c' },
-                { 'Т', 'T' },
-                { 'у', 'y' },
-                { 'Х', 'X' }, { 'х', 'x' }
-            };
-            var result = new StringBuilder();
-            foreach (var c in name)
-            {
-                var currentChar = new char();
-                if (glossary.TryGetValue(c, out currentChar)) result.Append(currentChar);
-                else result.Append(c);
-            }
-            return result.ToString();
-        }
     }
 }

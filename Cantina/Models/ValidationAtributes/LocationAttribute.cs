@@ -9,7 +9,7 @@ namespace Cantina.Models
     /// </summary>
     public class LocationAttribute : ValidationAttribute
     {
-        const string pattern = @"^[а-я\w\s]{4,32}$";       // шаблон валидации
+        const string pattern = @"^([а-я\w\s]{4,32})?$";       // шаблон валидации
 
         public override bool IsValid(object value)
         {

@@ -11,8 +11,7 @@ namespace Cantina.Models
         public override bool IsValid(object value)
         {
             var password = value.ToString();
-            if (String.IsNullOrEmpty(password) || password.Length < 5) return false;
-            else return true;
+            return !(String.IsNullOrEmpty(password) || password.Length < 6);
         }
     }
 }

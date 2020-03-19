@@ -1,73 +1,47 @@
 ﻿using System;
+using System.Text;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Configuration;
-using Cantina.Models;
 
 namespace Cantina.Services
 {
     /// <summary>
-    /// Сервис генерирует токены авторизации
+    /// Сервис генерирует токен авторизации
     /// </summary>
     public class TokenGenerator
     {
-        IHashService hashService;
         IConfiguration configuration;
 
-        public TokenGenerator(IHashService hashService, IConfiguration configuration)
+        public TokenGenerator(IConfiguration configuration)
         {
-            this.hashService = hashService;
             this.configuration = configuration;
         }
 
         /// <summary>
-        /// Метод генерирует токены авторизации.
+        /// Метод генерирует токен авторизации.
         /// </summary>
-        public TokenResponse GetTokenResponse(User user, string agent = null)
+        public string GetToken(int id, string login, UserRoles role, string agent = null)
         {
-            // генерируем access-токен
-            var expires = DateTime.UtcNow.AddMinutes(AuthOptions.TokenLifetime);    // срок действия токена
-
-            var token = new JwtSecurityToken(
-                issuer: AuthOptions.Issuer,
-                claims: new Claim[]
-                {
-                    new Claim(AuthOptions.ClaimID, user.Id.ToString()),                                 // токен хранит Id юзера,
-                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Name),                          // имя юзера,
-                    new Claim(ClaimsIdentity.DefaultRoleClaimType, user.Role.ToString())                // роль (админ / юзер / бот)
-                },
-                expires: expires,
-                signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(configuration), AuthOptions.SecurityAlgorithm)
-            );
-            var accessJWT = new JwtSecurityTokenHandler().WriteToken(token);
-
-            // генерируем refresh-токен
-            var refreshExpires = DateTime.UtcNow.AddHours(AuthOptions.RefreshLifetime);
-            var ClaimUAValue = hashService.SimpleHash(agent);
-            token = new JwtSecurityToken(
-                issuer: AuthOptions.Issuer,
-                claims: new Claim[]
-                {
-                    new Claim(AuthOptions.ClaimID, user.Id.ToString()),                 // записываем в рефреш-токен Id юзера
-                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.Email),         // email в качестве username
-                    new Claim(AuthOptions.ClaimUA, ClaimUAValue)                        // хэш заголовка юзер-агента (данный клэйм отличает обычный токен от рефреш-токена
-                },
-                expires: refreshExpires,
-                signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(configuration), AuthOptions.SecurityAlgorithm)
-            );
-            var refreshJWT = new JwtSecurityTokenHandler().WriteToken(token);
-
-            // Формируем ответ
-            return new TokenResponse
-            {
-                UserId = user.Id,
-                AccessToken = accessJWT,
-                AccessExpires = expires,
-                RefreshToken = refreshJWT,
-                RefreshExpires = refreshExpires
+            var expires = DateTime.UtcNow.AddHours(AuthOptions.TokenLifetime);                                  // срок действия токена
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["SECURITY_KEY"]));
+            var claims = new List<Claim> {
+                new Claim(AuthOptions.Claims.ID, id.ToString()),                                                // токен хранит Id юзера,
+                new Claim(AuthOptions.Claims.Login, login),                                                     // логин юзера,
+                new Claim(AuthOptions.Claims.UserAgent, agent)
             };
+
+            if (role != UserRoles.User) claims.Add(new Claim(AuthOptions.Claims.Role, role.ToString()));        // роль (админ / юзер / бот))
+
+            var accessJWT = new JwtSecurityToken(
+                issuer: AuthOptions.Issuer,
+                claims: claims,
+                expires: expires,
+                signingCredentials: new SigningCredentials(securityKey, AuthOptions.SecurityAlgorithm)
+            );
+            return new JwtSecurityTokenHandler().WriteToken(accessJWT);
         }
     }
 }

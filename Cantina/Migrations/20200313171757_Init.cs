@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Cantina.Migrations
 {
-    public partial class Initial : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -15,24 +15,40 @@ namespace Cantina.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Email = table.Column<string>(maxLength: 64, nullable: false),
-                    Name = table.Column<string>(maxLength: 20, nullable: false),
+                    Name = table.Column<string>(nullable: false),
                     Confirmed = table.Column<bool>(nullable: false),
                     Active = table.Column<bool>(nullable: false),
                     Role = table.Column<byte>(nullable: false),
-                    Profile_Gender = table.Column<byte>(nullable: true),
-                    Profile_Location = table.Column<string>(maxLength: 32, nullable: true),
-                    Profile_Birthday = table.Column<DateTime>(nullable: true),
-                    Profile_RegisterDate = table.Column<DateTime>(type: "date", nullable: false),
-                    Profile_LastEnterDate = table.Column<DateTime>(type: "date", nullable: true),
-                    Profile_OnlineTime = table.Column<int>(nullable: true),
-                    Profile_MessageStyle = table.Column<string>(nullable: true),
-                    PasswordHash = table.Column<string>(maxLength: 128, nullable: false),
-                    salt = table.Column<string>(maxLength: 64, nullable: false)
+                    Gender = table.Column<byte>(nullable: false),
+                    Location = table.Column<string>(maxLength: 32, nullable: true),
+                    Birthday = table.Column<DateTime>(nullable: true),
+                    OnlineTime = table.Column<int>(nullable: false),
+                    EndBlockDate = table.Column<DateTime>(nullable: true),
+                    Password = table.Column<string>(maxLength: 128, nullable: false),
+                    Settings = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
-                    table.UniqueConstraint("AK_Users_Email_Name", x => new { x.Email, x.Name });
+                    table.UniqueConstraint("AK_Users_Email", x => x.Email);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ForbiddenNames",
+                columns: table => new
+                {
+                    Name = table.Column<string>(nullable: false),
+                    UserId = table.Column<int>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ForbiddenNames", x => x.Name);
+                    table.ForeignKey(
+                        name: "FK_ForbiddenNames_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -58,13 +74,27 @@ namespace Cantina.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_ForbiddenNames_UserId",
+                table: "ForbiddenNames",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_History_UserID",
                 table: "History",
                 column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Name",
+                table: "Users",
+                column: "Name",
+                unique: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ForbiddenNames");
+
             migrationBuilder.DropTable(
                 name: "History");
 

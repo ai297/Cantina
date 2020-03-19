@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Configuration;
 
 namespace Cantina
 {
@@ -10,20 +9,31 @@ namespace Cantina
     public static class AuthOptions
     {
         public const string Issuer = "CantinaApiServer";    // издатель токена
-        public const int TokenLifetime = 15;                // время жизни токена авторизации, мин.
-        public const int RefreshLifetime = 48;              // время жизни рефреш-токена, ч.
+        public const int TokenLifetime = 4;                 // время жизни токена авторизации, ч
 
-        public const string ClaimID = "uid";                // для записи id юзера
-        public const string ClaimUA = "ua";                 // маркер для рефреш-токена
-
-        // метод возвращает ключ шифрования для генерации токенов доступа.
-        public static SymmetricSecurityKey GetSymmetricSecurityKey(IConfiguration configuration)
+        /// <summary>
+        /// Константы для названия клэймов
+        /// </summary>
+        public static class Claims
         {
-            string key = configuration["SECURITY_KEY"];
-            return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            public const string ID = "uid";                 // для записи id юзера
+            public const string Login = "eml";              // для логина (e-mail'a)
+            public const string Role = "ut";                // для тип юзера (роли)
+            public const string UserAgent = "ua";           // для записи юзер-агента
         }
 
-        // алгоритм шифрования ключа
+        /// <summary>
+        /// Константы для названий политик авторизации
+        /// </summary>
+        public static class AuthPolicy
+        {
+            public const string RequireAdminRole = "RequireAdminRole";
+            public const string RequireBotRole = "RequireBotRole";
+        }
+
+        /// <summary>
+        /// Алгоритм шифрования ключа токена
+        /// </summary>
         public static string SecurityAlgorithm { get; } = SecurityAlgorithms.HmacSha256;
     }
 }

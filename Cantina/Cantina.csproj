@@ -9,21 +9,16 @@
     <Product>Cantina Chat</Product>
     <Authors></Authors>
     <Description>Проект "Чат Кантина" - любительский проект вэб-чата для фанатов выдуманных миров</Description>
-    <Copyright>(c) разработчики</Copyright>
+    <Copyright>(c) Kris Casper</Copyright>
     <AssemblyVersion>0.0.0.0</AssemblyVersion>
     <FileVersion>0.0.1.0</FileVersion>
     <PackageId>Cantina</PackageId>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Migrations\20200116173206_Init.cs" />
-    <Compile Remove="Migrations\20200116173206_Init.Designer.cs" />
-    <Compile Remove="Migrations\20200116174108_Initial.cs" />
-    <Compile Remove="Migrations\20200116174108_Initial.Designer.cs" />
-    <Compile Remove="Migrations\20200116175419_Initial.cs" />
-    <Compile Remove="Migrations\20200116175419_Initial.Designer.cs" />
-    <Compile Remove="Migrations\20200116194846_updateNameField.cs" />
-    <Compile Remove="Migrations\20200116194846_updateNameField.Designer.cs" />
+    <Compile Remove="Migrations\20200313171641_Start.cs" />
+    <Compile Remove="Migrations\20200313171641_Start.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,7 +28,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.1.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="3.1.0" />
   </ItemGroup>
 

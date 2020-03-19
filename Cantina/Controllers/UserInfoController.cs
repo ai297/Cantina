@@ -1,59 +1,58 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Cantina.Models;
 using Cantina.Services;
-using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
     /// <summary>
-    /// Контроллер профиля посетителя.
-    /// если указан ID - возвращает конкретного юзера
+    /// Контроллер возвращает информацию о юзере
     /// </summary>
     public class UserInfoController : ApiBaseController
     {
-        UsersOnlineService usersOnline;
         UserService userService;
-        int currentUserId;
 
-        public UserInfoController(UserService userService, UsersOnlineService usersOnline)
+        public UserInfoController(UserService userService)
         {
             this.userService = userService;
-            this.usersOnline = usersOnline;
-            currentUserId = Convert.ToInt32(HttpContext.User.FindFirst(AuthOptions.ClaimID).Value);
         }
-
+        
         /// <summary>
-        /// Профиль текущего авторизованного юзера
+        /// На запрос без параметров возвращается полная информация о текущем юзере
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<User>> Get()
+        public ActionResult GetUserInfo()
         {
-            var user = await userService.GetUser(currentUserId);
-            return Ok(user);
+            var userId = HttpContext.User.FindFirstValue(AuthOptions.Claims.ID);
+            if (String.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var user = userService.GetUser(Convert.ToInt32(userId));
+            if (user != null) return Ok(user);
+            else return BadRequest();
         }
 
         /// <summary>
-        /// Публичный профиль юзера по Id
+        /// На запрос с указанием конкретного Id юзера возвращается общая информация о юзере
         /// </summary>
-        [HttpGet("{id}")]
-        public ActionResult<User> Get(int id)
+        [HttpGet("{userId}")]
+        public ActionResult GetUserInfo(int userId)
         {
-            var user = usersOnline.GetUser(id);     // профиль юзера, который онлайн
-            //var user = await userService.GetUser(id);     // профиль любого юзера
-            if (user == null) return NotFound();
-            var userInfo = new UserInfoResponse
+            var user = userService.GetUser(userId);
+            if (user == null) return BadRequest();
+            else return Ok(new
             {
+                Id = user.Id,
                 Name = user.Name,
-                OnlineStatus = (user.OnlineStatus == UserOnlineStatus.Hidden) ? UserOnlineStatus.Offline : user.OnlineStatus,
-                EnterTime = user.LastEnterTime,
-                Profile = user.Profile
-            };
-            return Ok(userInfo);
+                Gender = user.Gender,
+                Location = user.Location,
+                Birthday = user.Birthday,
+                OnlineTime = user.OnlineTime,
+                BannedTo = user.EndBlockDate
+            });
         }
-
     }
 }

@@ -18,13 +18,13 @@ namespace Cantina.Services
             this.database = context;
         }
         // Добавление в базу данных новой записи о действиях юзера
-        public async void NewActivityAsync(User user, ActivityTypes activityType, string description = "")
+        public async Task NewActivityAsync(int userId, ActivityTypes activityType, string description = "")
         {
             var activity = new UserHistory
             {
                 Date = DateTime.Now,
                 Type = activityType,
-                UserID = user.Id,
+                UserID = userId,
                 Description = description
             };
             await addActivity(activity);

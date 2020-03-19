@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Cantina.Models
+namespace Cantina.Models.Requests
 {
     /// <summary>
     /// Модель запроса на регистрацию

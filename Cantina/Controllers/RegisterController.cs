@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Cantina.Services;
-using Cantina.Models;
+using Cantina.Models.Requests;
 
 namespace Cantina.Controllers
 {
@@ -14,7 +14,7 @@ namespace Cantina.Controllers
     {
         UserService userService;
 
-        public RegisterController(DataContext db, UserService userService)
+        public RegisterController(UserService userService)
         {
             this.userService = userService;
         }
@@ -23,19 +23,18 @@ namespace Cantina.Controllers
         /// Обрабатываем POST - запрос на регистрацию нового юзера
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] RegisterRequest request)
+        public ActionResult Post([FromBody] RegisterRequest request)
         {
             // 1. Проверяем корректность данных в запросе
-            // TODO: Сделать более строгую проверку на недопустимые значения?
-            if (!TryValidateModel(request, nameof(request)))
-            {
-                return BadRequest(new ErrorResponse { Message = "Некорректные данные." });
-            }
-            // 2. Добавлем нового юзера.
-            var added = await userService.NewUser(request);
-            if(!added) return BadRequest(new ErrorResponse { Message = "Имя или e-mail уже зарегистрированы." });
-            else return Ok();
+            if (!TryValidateModel(request, nameof(request))) return BadRequest("Некорректные данные.");
+
+            //2. Проверка никнейма на возможность использования.
+            if (userService.CheckNameForForbidden(request.Name)) return BadRequest("Имя уже занято либо запрещено.");
+
+            // 3. Добавлем нового юзера.
+            var added = userService.NewUser(request);
+            if(!added) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
+            return Ok("Аккаунт успешно зарегистрирован. Необходима активация.");
         }
-        
     }
 }
