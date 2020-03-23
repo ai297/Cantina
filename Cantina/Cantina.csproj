@@ -19,6 +19,8 @@
   <ItemGroup>
     <Compile Remove="Migrations\20200313171641_Start.cs" />
     <Compile Remove="Migrations\20200313171641_Start.Designer.cs" />
+    <Compile Remove="Migrations\20200323100943_change_username_column.cs" />
+    <Compile Remove="Migrations\20200323100943_change_username_column.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

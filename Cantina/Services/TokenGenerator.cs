@@ -23,14 +23,15 @@ namespace Cantina.Services
         /// <summary>
         /// Метод генерирует токен авторизации.
         /// </summary>
-        public string GetToken(int id, string login, UserRoles role, string agent = null)
+        public string GetToken(int id, string email, UserRoles role, string agent = null)
         {
             var expires = DateTime.UtcNow.AddHours(AuthOptions.TokenLifetime);                                  // срок действия токена
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["SECURITY_KEY"]));
+            // информация о юзере, которая будет содержаться в токене
             var claims = new List<Claim> {
-                new Claim(AuthOptions.Claims.ID, id.ToString()),                                                // токен хранит Id юзера,
-                new Claim(AuthOptions.Claims.Login, login),                                                     // логин юзера,
-                new Claim(AuthOptions.Claims.UserAgent, agent)
+                new Claim(AuthOptions.Claims.ID, id.ToString()),                                                // Id юзера,
+                new Claim(AuthOptions.Claims.Email, email),                                                     // email юзера,
+                new Claim(AuthOptions.Claims.UserAgent, agent)                                                  // заголовок юзер-агент
             };
 
             if (role != UserRoles.User) claims.Add(new Claim(AuthOptions.Claims.Role, role.ToString()));        // роль (админ / юзер / бот))

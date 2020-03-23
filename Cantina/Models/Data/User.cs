@@ -23,9 +23,12 @@ namespace Cantina.Models
 
         /// <summary>
         /// Никнейм
-        /// </summary>        
+        /// </summary>
+        [NotMapped]
         [Required, Nickname]
-        public string Name { get; set; }
+        public string Name { get => name; set { name = value; } }
+        
+        private string name;
 
         /// <summary>
         /// Подтверждён ли аккаунт. Сбрасывать на false при смене email'a.
@@ -37,8 +40,7 @@ namespace Cantina.Models
         /// </summary>
         public bool Active { get; set; } = true;
 
-        [Required]
-        [MaxLength(128)]
+        [Required, MaxLength(128)]
         private string password;
         /// <summary>
         /// Сеттер для пароля

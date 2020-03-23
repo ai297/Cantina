@@ -44,7 +44,7 @@ namespace Cantina.Controllers
             if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
             // Генерируем и возвращаем токен
             var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
-            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent) });
+            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Name });
         }
 
         /// <summary>
@@ -56,8 +56,7 @@ namespace Cantina.Controllers
             // получаем информацию о юзере из клэймов, сохранённых в токене
             var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.Claims.ID);
             var ClaimUA = HttpContext.User.FindFirstValue(AuthOptions.Claims.UserAgent);
-            var ClaimLogin = HttpContext.User.FindFirstValue(AuthOptions.Claims.Login);
-
+            var ClaimEmail = HttpContext.User.FindFirstValue(AuthOptions.Claims.Email);
             var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
 
             // если не установлен claim с Id пользователя
@@ -72,10 +71,10 @@ namespace Cantina.Controllers
             // если юзер не найден или аккаунт не подтверждён / не активен
             if (user == null || !user.Active || !user.Confirmed) return Unauthorized();
             // если юзер изменил email то рефреш-токен не действителен
-            if (!user.Email.Equals(ClaimLogin)) return Unauthorized();
+            if (!user.Email.Equals(ClaimEmail)) return Unauthorized();
 
             // если всё впорядке - обновляем и возвращаем оба токена
-            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent) });
+            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Name });
         }
     }
 }

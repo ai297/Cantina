@@ -5,14 +5,17 @@ using System.Threading.Tasks;
 
 namespace Cantina.Models
 {
-    public class UserInOnline
+    /// <summary>
+    /// Онлайн сессия юзера.
+    /// </summary>
+    public class OnlineSession
     {
         public User User { get; private set; }
         public DateTime EnterTime { get; private set; }
         public UserOnlineStatus Status { get; set; } = UserOnlineStatus.Online;
         public List<string> ConnectionIDs { get; set; }
 
-        public UserInOnline(User user, string connectionId)
+        public OnlineSession(User user, string connectionId)
         {
             User = user;
             EnterTime = DateTime.UtcNow;

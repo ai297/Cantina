@@ -38,10 +38,11 @@ namespace Cantina.Services
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // сохраняем в базе так же приватные поля
+            modelBuilder.Entity<User>().Property("name").HasColumnName("Name").IsRequired().HasMaxLength(20);
             modelBuilder.Entity<User>().Property("password").HasColumnName("Password").IsRequired();
             modelBuilder.Entity<User>().Property("settings").HasColumnName("Settings");
             modelBuilder.Entity<User>().HasAlternateKey(user => user.Email);                // email юзера - дополнительный ключ (уникальное поле)
-            modelBuilder.Entity<User>().HasIndex("Name").IsUnique();                        // никнейм должен быть уникальным
+            modelBuilder.Entity<User>().HasIndex("name").IsUnique();                        // никнейм должен быть уникальным
             modelBuilder.Entity<ForbiddenNames>().HasKey(fn => fn.Name);                    // в таблице с запрещёнными именами - ключом является само имя
         }
     }

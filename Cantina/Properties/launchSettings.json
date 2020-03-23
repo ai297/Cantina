@@ -16,7 +16,7 @@
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
-        "SECURITY_KEY": "kSLwnw&6alq238WoWQ91J1DojjdAOA0*y1$UHW28~",
+        "SECURITY_KEY": "very_long_and_very_secret_key",
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },

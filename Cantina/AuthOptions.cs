@@ -17,7 +17,7 @@ namespace Cantina
         public static class Claims
         {
             public const string ID = "uid";                 // для записи id юзера
-            public const string Login = "eml";              // для логина (e-mail'a)
+            public const string Email = "eml";              // для e-mail'a
             public const string Role = "ut";                // для тип юзера (роли)
             public const string UserAgent = "ua";           // для записи юзер-агента
         }
@@ -34,6 +34,6 @@ namespace Cantina
         /// <summary>
         /// Алгоритм шифрования ключа токена
         /// </summary>
-        public static string SecurityAlgorithm { get; } = SecurityAlgorithms.HmacSha256;
+        public static string SecurityAlgorithm { get => SecurityAlgorithms.HmacSha256; }
     }
 }

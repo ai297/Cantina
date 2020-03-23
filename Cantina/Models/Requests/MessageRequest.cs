@@ -1,16 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Cantina.Models
+namespace Cantina.Models.Requests
 {
     /// <summary>
-    /// Необходимые данные для отправки сообщения
+    /// Запрос для отправки сообщения
     /// </summary>
     public class MessageRequest
     {
-        //public int ReceiverId { get; set; }
-        //MessageTypes MessageType { get; set; } = MessageTypes.Base;
-        //[Required, MaxLength(512)]
-        //public string Text { get; set; }
-        //public MessageStyle MessageStyle { get; set; } = null;
+        [Required, MaxLength(512)]
+        public string Text { get; set; }
+        public MessageTypes MessageType { get; set; } = MessageTypes.Base;
+        public int[] Recipients { get; set; } = new int[0];
     }
 }

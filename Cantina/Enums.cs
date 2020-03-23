@@ -48,9 +48,9 @@
     /// </summary>
     public enum MessageTypes: byte
     {
-        System,
-        Base,
-        Privat,
-        ThirdPerson,
+        System = 0,
+        Base = 10,
+        ThirdPerson = 20,
+        Privat = 30,
     }
 }

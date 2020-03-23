@@ -26,13 +26,13 @@ namespace Cantina.Controllers
         public ActionResult Post([FromBody] RegisterRequest request)
         {
             // 1. Проверяем корректность данных в запросе
-            if (!TryValidateModel(request, nameof(request))) return BadRequest("Некорректные данные.");
+            if (!TryValidateModel(request, nameof(RegisterRequest))) return BadRequest("Некорректные данные.");
 
             //2. Проверка никнейма на возможность использования.
             if (userService.CheckNameForForbidden(request.Name)) return BadRequest("Имя уже занято либо запрещено.");
 
             // 3. Добавлем нового юзера.
-            var added = userService.NewUser(request);
+            var added = userService.NewUser(request.Email, request.Name, request.Password, request.Gender, request.Location);
             if(!added) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
             return Ok("Аккаунт успешно зарегистрирован. Необходима активация.");
         }

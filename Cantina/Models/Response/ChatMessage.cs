@@ -15,6 +15,7 @@ namespace Cantina.Models.Response
         public DateTime DateTime { get; set; }
         public String Type { get; set; } = MessageTypes.Base.ToString();
         public string Text { get; set; }
-        public List<int> Recipients { get; set; }
+        public int[] Recipients { get; set; } = new int[0];
+
     }
 }

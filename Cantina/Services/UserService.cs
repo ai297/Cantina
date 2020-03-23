@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Caching.Memory;
 using Cantina.Models;
-using Cantina.Models.Requests;
 
 namespace Cantina.Services
 {
@@ -16,7 +15,6 @@ namespace Cantina.Services
     {
         DataContext database;
         HashService hashService;
-        //IMemoryCache memoryCache;
         UsersHistoryService historyService;
 
         // сопоставление символов, считающихся похожими. только нижний регистр
@@ -41,31 +39,32 @@ namespace Cantina.Services
             { 'х', 'x' },   // х-x, Х-X
             { 'ч', '4' },   // Ч-4
             { 'ь', 'b' },   // Ь-b
+            { ' ', '_' },   // -_
+            { '\u00A0', '_' }, // -_
         };
         
         public UserService(DataContext context, HashService hashService, UsersHistoryService historyService)
         {
             this.database = context;                // подключаем сервис контекста базы данных
             this.hashService = hashService;         // сервис хэширования
-            //this.memoryCache = cache;               // сервис кеширования
             this.historyService = historyService;   // сервис логгирования активностей
         }
         
         /// <summary>
         /// Метод создаёт нового юзера на основе полученных данных.
         /// </summary>
-        public bool NewUser(RegisterRequest request)
+        public bool NewUser(string email, string name, string password, Gender gender = Gender.Uncertain, string location = "")
         {
             // Создаём юзера.
             var user = new User
             {
-                Email = request.Email,
-                Name = request.Name,
-                Gender = request.Gender,
-                Location = request.Location
+                Email = email,
+                Name = name,
+                Gender = gender,
+                Location = location
             };
             // Хэшируем пароль.
-            var hashedPassword = hashService.Get256Hash(request.Password);
+            var hashedPassword = hashService.Get256Hash(password);
             user.SetPassword(hashedPassword);
             // Сохраняем в базу.
             var result = addUser(user);
@@ -114,18 +113,6 @@ namespace Cantina.Services
             var result = database.ForbiddenNames.Where(fn => fn.Name.Equals(GetNameModel(name))).ToArray().Count();
             return result > 0;
         }
-
-        // метод добавляет юзера в кеш
-        //private void addToCache(User user)
-        //{
-        //    if (user != null)
-        //    {
-        //        memoryCache.Set<User>(user.Id, user, new MemoryCacheEntryOptions
-        //        {
-        //            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(90)  // время кеширования, в минутах
-        //        });
-        //    }
-        //}
 
         // метод добавляет нового юзера в базу
         private bool addUser(User user)

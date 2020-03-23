@@ -11,34 +11,58 @@ namespace Cantina.Services
     /// </summary>
     public class OnlineService
     {
-        Dictionary<int, UserInOnline> OnlineUsers;
+        private Dictionary<int, OnlineSession> OnlineUsers;
 
         public OnlineService()
         {
-            OnlineUsers = new Dictionary<int, UserInOnline>();          // список юзеров онлайн
+            OnlineUsers = new Dictionary<int, OnlineSession>();          // список юзеров онлайн
         }
 
         /// <summary>
         /// Подключение нового клиента
         /// </summary>
-        public bool AddUser(int id, string connectionId, UserService userService)
+        public bool AddUser(int userId, string connectionId, UserService userService)
         {
             // Если юзера нет в списке онлайн - добавляем
-            if (!OnlineUsers.ContainsKey(id))
+            if (!OnlineUsers.ContainsKey(userId))
             {
-                var user = userService.GetUser(id);
-                OnlineUsers.Add(user.Id, new UserInOnline(user, connectionId));
+                var user = userService.GetUser(userId);
+                OnlineUsers.Add(user.Id, new OnlineSession(user, connectionId));
                 return true;
             }
-            if (!OnlineUsers[id].ConnectionIDs.Contains(connectionId)) OnlineUsers[id].ConnectionIDs.Add(connectionId);
+            if (!OnlineUsers[userId].ConnectionIDs.Contains(connectionId)) OnlineUsers[userId].ConnectionIDs.Add(connectionId);
+            return false;
+        }
+
+        /// <summary>
+        /// Отключение клиента / юзера
+        /// </summary>
+        public bool RemoveUser(int userId, string connectionId)
+        {
+            if (OnlineUsers.ContainsKey(userId))
+            {
+                OnlineUsers[userId].ConnectionIDs.Remove(connectionId);
+                var isUserDisconnected = OnlineUsers[userId].ConnectionIDs.Count == 0;
+                if (isUserDisconnected) OnlineUsers.Remove(userId);
+                return isUserDisconnected;
+            }
             return false;
         }
 
 
-        public UserInOnline GetUserIfOnline(int id)
+        public OnlineSession GetUserIfOnline(int id)
         {
             if (OnlineUsers.ContainsKey(id)) return OnlineUsers[id];
             else return null;
         }
+
+        public List<OnlineSession> GetOnlineUsers()
+        {
+            var result = from keyValue in OnlineUsers
+                         where keyValue.Value.Status != UserOnlineStatus.Hidden
+                         select keyValue.Value;
+            return result.ToList();
+        }
+
     }
 }

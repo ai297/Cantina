@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.Extensions.Configuration;
 using Cantina.Models;
@@ -26,22 +27,23 @@ namespace Cantina.Services
             // derive a 256-bit subkey (use HMACSHA1 with n iterations)
             return Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: value,
-                salt: Convert.FromBase64String(localKey),
+                salt: Encoding.UTF8.GetBytes(localKey),
                 prf: KeyDerivationPrf.HMACSHA1,
                 iterationCount: iterations,
-                numBytesRequested: 256 / 8));
+                numBytesRequested: 256 / 8
+            ));
         }
 
         public string Get128Hash(string value)
         {
             if (String.IsNullOrEmpty(value)) return null;
             return Convert.ToBase64String(KeyDerivation.Pbkdf2(
-                password: value + localKey,
-                salt: new byte[0],
+                password: value,
+                salt: Encoding.UTF8.GetBytes(localKey),
                 prf: KeyDerivationPrf.HMACSHA1,
                 iterationCount: 100,
                 numBytesRequested: 128 / 8
-                ));
+            ));
         }
     }
 }

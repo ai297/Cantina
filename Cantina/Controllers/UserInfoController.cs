@@ -6,6 +6,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Cantina.Services;
+using Cantina.Models.Response;
 
 namespace Cantina.Controllers
 {
@@ -43,16 +44,7 @@ namespace Cantina.Controllers
         {
             var user = userService.GetUser(userId);
             if (user == null) return BadRequest();
-            else return Ok(new
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Gender = user.Gender,
-                Location = user.Location,
-                Birthday = user.Birthday,
-                OnlineTime = user.OnlineTime,
-                BannedTo = user.EndBlockDate
-            });
+            else return Ok(new PublicUserInfo(user));
         }
     }
 }
