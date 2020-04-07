@@ -16,6 +16,10 @@ namespace Cantina.Services
         /// </summary>
         public DbSet<User> Users { get; set; }
         /// <summary>
+        /// Профили юзеров
+        /// </summary>
+        public DbSet<UserProfile> UserProfiles { get; set; }
+        /// <summary>
         /// История активности
         /// </summary>
         public DbSet<UserHistory> History { get; set; }
@@ -38,12 +42,13 @@ namespace Cantina.Services
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // сохраняем в базе так же приватные поля
-            modelBuilder.Entity<User>().Property("name").HasColumnName("Name").IsRequired().HasMaxLength(20);
             modelBuilder.Entity<User>().Property("password").HasColumnName("Password").IsRequired();
-            modelBuilder.Entity<User>().Property("settings").HasColumnName("Settings");
+            modelBuilder.Entity<UserProfile>().Property("settings").HasColumnName("Settings");
+            // ключевые поля
             modelBuilder.Entity<User>().HasAlternateKey(user => user.Email);                // email юзера - дополнительный ключ (уникальное поле)
-            modelBuilder.Entity<User>().HasIndex("name").IsUnique();                        // никнейм должен быть уникальным
-            modelBuilder.Entity<ForbiddenNames>().HasKey(fn => fn.Name);                    // в таблице с запрещёнными именами - ключом является само имя
+            modelBuilder.Entity<UserProfile>().HasKey(up => up.UserId);                     // UserId - ключ в таблице профиля
+            modelBuilder.Entity<ForbiddenNames>().HasIndex(fn => fn.Name).IsUnique();
+            modelBuilder.Entity<UserProfile>().HasIndex(up => up.Name).IsUnique();          // Никнейм в профиле - дополнительный ключ (уникальное значение)
         }
     }
 }

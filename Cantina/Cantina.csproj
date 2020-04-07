@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>Cantina</RootNamespace>
-    <StartupObject></StartupObject>
+    <StartupObject>Cantina.Program</StartupObject>
     <Version>0.0.1</Version>
     <Company>Cantina</Company>
     <Product>Cantina Chat</Product>
@@ -15,13 +15,6 @@
     <PackageId>Cantina</PackageId>
     <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Migrations\20200313171641_Start.cs" />
-    <Compile Remove="Migrations\20200313171641_Start.Designer.cs" />
-    <Compile Remove="Migrations\20200323100943_change_username_column.cs" />
-    <Compile Remove="Migrations\20200323100943_change_username_column.Designer.cs" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.0" />
@@ -36,7 +29,7 @@
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <TypeScriptTarget>ES5</TypeScriptTarget>
-    <TypeScriptJSXEmit>React</TypeScriptJSXEmit>
+    <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
     <TypeScriptModuleKind />
     <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
     <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
@@ -48,6 +41,11 @@
     <TypeScriptSourceMap>True</TypeScriptSourceMap>
     <TypeScriptMapRoot />
     <TypeScriptSourceRoot />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
   </PropertyGroup>
 
 </Project>

@@ -1,35 +1,12 @@
 {
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iis": {
-      "applicationUrl": "http://localhost/",
-      "sslPort": 0
-    },
-    "iisExpress": {
-      "applicationUrl": "http://localhost:5000",
-      "sslPort": 0
-    }
-  },
   "profiles": {
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
+    "CantinaServer": {
+      "commandName": "Project",
       "environmentVariables": {
         "SECURITY_KEY": "very_long_and_very_secret_key",
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    "CantinaServer": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "CONNECTION_STRING": "Host=localhost;Port=5432;Database=cantina_db;Username=user;Password=password",
-        "SECURITY_KEY": "kSLwnw&6alq238WoWQ91J1DojjdAOA0*y1$UHW28~",
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "LOCAL_KEY": "jK%2k"
       },
-      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+      "applicationUrl": "http://localhost:5000"
     }
   }
 }

@@ -13,10 +13,5 @@ namespace Cantina.Models.Requests
         public string Name { get; set; }
         [Required, Password]
         public string Password { get; set; }
-
-        public Gender Gender { get; set; } = Gender.Uncertain;
-
-        [Location]
-        public string Location { get; set; }
     }
 }

@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cantina.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20200313171757_Init")]
-    partial class Init
+    [Migration("20200405092138_updateKeys")]
+    partial class updateKeys
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -23,13 +23,21 @@ namespace Cantina.Migrations
 
             modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
                 {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
                     b.Property<string>("Name")
                         .HasColumnType("text");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
-                    b.HasKey("Name");
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -46,9 +54,6 @@ namespace Cantina.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTime?>("Birthday")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<bool>("Confirmed")
                         .HasColumnType("boolean");
 
@@ -60,20 +65,6 @@ namespace Cantina.Migrations
                     b.Property<DateTime?>("EndBlockDate")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<byte>("Gender")
-                        .HasColumnType("smallint");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("character varying(32)")
-                        .HasMaxLength(32);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("OnlineTime")
-                        .HasColumnType("integer");
-
                     b.Property<byte>("Role")
                         .HasColumnType("smallint");
 
@@ -83,16 +74,9 @@ namespace Cantina.Migrations
                         .HasColumnType("character varying(128)")
                         .HasMaxLength(128);
 
-                    b.Property<string>("settings")
-                        .HasColumnName("Settings")
-                        .HasColumnType("text");
-
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Email");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -124,6 +108,44 @@ namespace Cantina.Migrations
                     b.ToTable("History");
                 });
 
+            modelBuilder.Entity("Cantina.Models.UserProfile", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("Birthday")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("character varying(255)")
+                        .HasMaxLength(255);
+
+                    b.Property<byte>("Gender")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("character varying(32)")
+                        .HasMaxLength(32);
+
+                    b.Property<string>("Name")
+                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(20);
+
+                    b.Property<int>("OnlineTime")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("settings")
+                        .HasColumnName("Settings")
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("UserProfiles");
+                });
+
             modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
                 {
                     b.HasOne("Cantina.Models.User", "User")
@@ -138,6 +160,15 @@ namespace Cantina.Migrations
                     b.HasOne("Cantina.Models.User", "User")
                         .WithMany("History")
                         .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Cantina.Models.UserProfile", b =>
+                {
+                    b.HasOne("Cantina.Models.User", "User")
+                        .WithOne("Profile")
+                        .HasForeignKey("Cantina.Models.UserProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

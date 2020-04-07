@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
 using Cantina.Models;
 
 namespace Cantina.Services
@@ -15,7 +16,6 @@ namespace Cantina.Services
     {
         DataContext database;
         HashService hashService;
-        UsersHistoryService historyService;
 
         // сопоставление символов, считающихся похожими. только нижний регистр
         private static Dictionary<char, char> convertChars = new Dictionary<char, char>() {
@@ -43,34 +43,42 @@ namespace Cantina.Services
             { '\u00A0', '_' }, // -_
         };
         
-        public UserService(DataContext context, HashService hashService, UsersHistoryService historyService)
+        public UserService(DataContext context, HashService hashService)
         {
             this.database = context;                // подключаем сервис контекста базы данных
             this.hashService = hashService;         // сервис хэширования
-            this.historyService = historyService;   // сервис логгирования активностей
         }
         
         /// <summary>
         /// Метод создаёт нового юзера на основе полученных данных.
         /// </summary>
-        public bool NewUser(string email, string name, string password, Gender gender = Gender.Uncertain, string location = "")
+        public async Task<User> AddUserAsync(string email, string name, string password)
         {
             // Создаём юзера.
             var user = new User
             {
                 Email = email,
-                Name = name,
-                Gender = gender,
-                Location = location
+                Profile = new UserProfile
+                {
+                    Name = name
+                }
             };
             // Хэшируем пароль.
-            var hashedPassword = hashService.Get256Hash(password);
+            var hashedPassword = hashService.Get256Hash(password, email);
             user.SetPassword(hashedPassword);
             // Сохраняем в базу.
-            var result = addUser(user);
-            // Добавляем запись о регистрации в историю активностей юзера
-            if (result) _ = historyService.NewActivityAsync(user.Id, ActivityTypes.Register);
-            return result;
+            try
+            {
+                // добавляем юзера в базу данных
+                database.Users.Add(user);
+                database.ForbiddenNames.Add(new ForbiddenNames { Name = GetNameModel(user.Profile.Name), User = user });
+                await database.SaveChangesAsync();
+                return user;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -78,14 +86,14 @@ namespace Cantina.Services
         /// </summary>
         public User GetUser(int id)
         {
-            return database.Users.SingleOrDefault<User>(u => u.Id == id);
+            return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
         }
         /// <summary>
         /// Перегрузка ищет юзера по email
         /// </summary>
         public User GetUser(string email)
         {
-            return database.Users.SingleOrDefault<User>(u => u.Email == email);
+            return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Email.Equals(email));
         }
         /// <summary>
         /// Метод обновляет информацию о юзере в базе
@@ -97,13 +105,7 @@ namespace Cantina.Services
             // обновляем юзера в базе данных
             database.Users.Update(user);
             var updated = await database.SaveChangesAsync();
-            // если удалось обновить в базе - обновляем кеш
-            if (updated > 0)
-            {
-                //addToCache(user);
-                return true;
-            }
-            else return false;
+            return updated > 0;
         }
         /// <summary>
         /// Метод проверяет имя на присутствие в таблице занятых имён
@@ -114,25 +116,25 @@ namespace Cantina.Services
             return result > 0;
         }
 
-        // метод добавляет нового юзера в базу
-        private bool addUser(User user)
+        /// <summary>
+        /// Метод получает профиль юзера
+        /// </summary>
+        public UserProfile GetUserProfile(int userId)
         {
-            try
-            {
-                // добавляем юзера в базу данных
-                database.Users.Add(user);
-                database.ForbiddenNames.Add(new ForbiddenNames { Name = GetNameModel(user.Name), User = user });
-                var added = database.SaveChanges();
-                // если хоть какой-то юзер в базу добавлен - добавляем его так же в кэш и возвращаем true
-                if (added > 0)
-                {
-                    return true;
-                } else return false;
-            }
-            catch
-            {
-                return false;
-            }
+            return database.UserProfiles.SingleOrDefault<UserProfile>(up => up.User.Id == userId);
+        }
+        /// <summary>
+        /// Метод обновляет профиль юзера
+        /// </summary>
+        public async Task<bool> UpdateUserProfileAsync(UserProfile profile)
+        {
+            if (profile == null || profile.UserId == 0) return false;
+            var forbiddenName = database.ForbiddenNames.Where(fn => fn.UserId == profile.UserId).FirstOrDefault();
+            forbiddenName.Name = GetNameModel(profile.Name);
+            database.UserProfiles.Update(profile);
+            database.ForbiddenNames.Update(forbiddenName);
+            var updated = await database.SaveChangesAsync();
+            return updated > 0;
         }
 
         private string GetNameModel(string name)

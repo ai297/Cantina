@@ -38,13 +38,13 @@ namespace Cantina.Controllers
             // Ищем юзера по email и проверяем пароль.
             var user = userService.GetUser(request.Email);
             // Если не нашли или не совпадает пароль - не авторизован.
-            if (user == null || !user.PasswordEqual(hashService.Get256Hash(request.Password))) return Unauthorized("Неверный логин или пароль");
+            if (user == null || !user.PasswordEqual(hashService.Get256Hash(request.Password, request.Email))) return Unauthorized("Неверный логин или пароль");
             // Если аккаунт заблокирован
-            if (!user.Active) return Forbid();
+            if (!user.Active) return Forbid("Доступ запрещён");
             if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
             // Генерируем и возвращаем токен
             var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
-            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Name });
+            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace Cantina.Controllers
             if (!user.Email.Equals(ClaimEmail)) return Unauthorized();
 
             // если всё впорядке - обновляем и возвращаем оба токена
-            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Name });
+            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
         }
     }
 }

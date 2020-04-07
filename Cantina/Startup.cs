@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using Cantina.Controllers;
 using Cantina.Services;
 using Microsoft.AspNetCore.SignalR;
@@ -34,7 +36,9 @@ namespace Cantina
                     .AllowCredentials();
                 });
             });                                       // Крос-доменные http запросы.
-            services.AddDbContext<DataContext>();                                   // Контекст базы данных.
+            services.AddDbContext<DataContext>(options => {
+                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+            });                     // Контекст базы данных.
             services.AddTransient<HashService>();                                   // Сервис для хэширования (например пароля)
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)      // Сервис авторизации юзеров с использованием токенов.
                 .AddJwtBearer(options =>
@@ -75,34 +79,35 @@ namespace Cantina
             });                               // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.
             //services.AddMemoryCache();                                              // Сервис для работы с кешем.
-            services.AddTransient<UsersHistoryService>();                           // Сервис для работы с историй действий юзеров.
-            services.AddTransient<UserService>();                                   // Сервис для работы с юзерами
+            services.AddScoped<UsersHistoryService>();                           // Сервис для работы с историй действий юзеров.
+            services.AddScoped<UserService>();                                   // Сервис для работы с юзерами
             services.AddSingleton<OnlineService>();                                 // Cервис хранит список посетителей онлайн.
-            services.AddSingleton<MessagesService>();                               // Сервис обрабатывает сообщения в чате и сохраняет их в архив.
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
                 hubOptions.EnableDetailedErrors = true;                         // TODO: заменить на false;
-                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(10);    // Если в течении 10 минут нет сообщений от клиента - закрыть соединение.
-                hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
-                hubOptions.KeepAliveInterval = TimeSpan.FromMinutes(5);         // Частота отправки Ping-сообщений.
+                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);    // Если в течении 10 минут нет сообщений от клиента - закрыть соединение.
+                //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
+                hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);         // Частота отправки Ping-сообщений.
             });
             services.AddControllers();                                              // Используем контроллеры из архитектуры MVC (без View).
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
                 /// Настраиваем Middleware ///
             if (env.IsDevelopment())
             {
                 // Вывод сообщений об ошибках, если приложение на стадии разработки.
                 app.UseDeveloperExceptionPage();
+                logger.LogWarning(new EventId(0, "StartUp"), "Cantina Server started in development mode.");
             }
             else
             {
                 // Переадресация на https.
                 app.UseHsts();
                 app.UseHttpsRedirection();
+                logger.LogInformation("Cantina Server is starting.");
             }
             app.UseRouting();                               // Подключаем маршрутизацию.
 

@@ -39,6 +39,7 @@
     public enum UserOnlineStatus : byte
     {
         Hidden,             // Невидим.
+        Offline,            // Юзер не в сети
         Online,             // Юзер в онлайне.
         Absentee,           // Отошедший
     }
@@ -53,4 +54,5 @@
         ThirdPerson = 20,
         Privat = 30,
     }
+
 }

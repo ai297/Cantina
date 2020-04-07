@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using Cantina.Services;
 using Cantina.Models;
-using Cantina.Models.Response;
 using Cantina.Models.Requests;
 
 namespace Cantina.Controllers
@@ -20,15 +20,13 @@ namespace Cantina.Controllers
         // адрес для данного хаба
         public const string PATH = "/hub";
 
-        // сервисы
         OnlineService OnlineList;
-        UserService UserService;
 
         OnlineSession currentUser;
         OnlineSession CurrentUser { 
             get
             {
-                if (currentUser == null) currentUser = OnlineList.GetUserIfOnline(CurrentUserId);
+                if (currentUser == null) currentUser = OnlineList.GetSessionInfo(CurrentUserId);
                 return currentUser;
             }
         }
@@ -36,11 +34,10 @@ namespace Cantina.Controllers
 
         //MessagesService messagesService;
 
-        public MainHub(OnlineService onlineUsers, UserService userService, UsersHistoryService historyService)
+        public MainHub(OnlineService onlineUsers, UsersHistoryService historyService)
         {
             // подключаем зависимости
             OnlineList = onlineUsers;
-            UserService = userService;
         }
 
         #region Подключение - Отключение
@@ -51,12 +48,13 @@ namespace Cantina.Controllers
         {
             await base.OnConnectedAsync();
             // регистрация юзера в списке онлайна
-            if(OnlineList.AddUser(CurrentUserId, Context.ConnectionId, UserService))
+            if(OnlineList.AddUser(CurrentUserId, Context.ConnectionId))
             {
                 // оповещение о входе, если это новый юзер в списке
                 await Clients.All.ReceiveMessage(NewSystemMessage("В Кантину заходит <0>."));
                 // добавление юзера в список онлайна на клиенте всем, кроме текущего юзера
-                await Clients.Others.AddUserToOnlineList(OnlineSessionInfo.OnlineSessionOut(CurrentUser));
+                await Clients.Others.AddUserToOnlineList(CurrentUser);
+
             }
         }
 
@@ -66,9 +64,9 @@ namespace Cantina.Controllers
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             //TODO: Сделать проверку - отключился юзер сам или вылетел
-            
+
             // удаление юзера из списка онлайн
-            if (CurrentUser != null && OnlineList.RemoveUser(CurrentUserId, Context.ConnectionId))
+            if (CurrentUser != null && await OnlineList.RemoveUser(CurrentUserId, Context.ConnectionId))
             {
                 // оповещение о выходе, если у юзера не осталось подключенных клиентов
                 await Clients.All.ReceiveMessage(NewSystemMessage("<0> покидает Кантину."));
@@ -86,7 +84,8 @@ namespace Cantina.Controllers
         /// </summary>
         public async Task SendMessage(MessageRequest messageRequest)
         {
-
+            if (messageRequest.Text.Length < 3) return;
+            
             // TODO: Проверка на возможность отправки сообщения юзером
 
             switch(messageRequest.MessageType)
@@ -111,11 +110,13 @@ namespace Cantina.Controllers
             return new ChatMessage
             {
                 AuthorId = CurrentUserId,
-                AuthorName = CurrentUser.User.Name,
+                AuthorName = CurrentUser.Name,
                 DateTime = DateTime.UtcNow,
                 Type = messageRequest.MessageType.ToString(),
                 Text = messageRequest.Text,
-                Recipients = messageRequest.Recipients
+                Recipients = messageRequest.Recipients,
+                NameStyle = CurrentUser.NameStyle,
+                MessageStyle = CurrentUser.MessageStyle
             };
         }
 
@@ -124,15 +125,12 @@ namespace Cantina.Controllers
             return new ChatMessage
             {
                 AuthorId = CurrentUserId,
-                AuthorName = CurrentUser.User.Name,
+                AuthorName = CurrentUser.Name,
                 DateTime = DateTime.UtcNow,
                 Type = MessageTypes.System.ToString(),
                 Text = text,
             };
         }
-
         #endregion
-
-
     }
 }

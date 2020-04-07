@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cantina.Models.Response;
 
-namespace Cantina.Controllers
+namespace Cantina.Models
 {
     /// <summary>
     /// Методы клиента, доступные серверу
@@ -14,7 +13,7 @@ namespace Cantina.Controllers
         /// <summary>
         /// Добавить юзера в список онлайна
         /// </summary>
-        Task AddUserToOnlineList(OnlineSessionInfo sessionInfo);
+        Task AddUserToOnlineList(OnlineSession session);
         /// <summary>
         /// Удалить юзера из списка онлайн
         /// </summary>

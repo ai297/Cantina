@@ -18,16 +18,16 @@ namespace Cantina.Services
             localKey = configuration.GetSection("LOCAL_KEY").Value;
         }
 
-        public string Get256Hash(string value)
+        public string Get256Hash(string value, string salt = null)
         {
             if (String.IsNullOrEmpty(value)) return null;
-
+            if (String.IsNullOrEmpty(salt)) salt = localKey;
             int iterations = 499 + (29 - value.Length) ^ 4;
 
             // derive a 256-bit subkey (use HMACSHA1 with n iterations)
             return Convert.ToBase64String(KeyDerivation.Pbkdf2(
                 password: value,
-                salt: Encoding.UTF8.GetBytes(localKey),
+                salt: Encoding.UTF8.GetBytes(salt),
                 prf: KeyDerivationPrf.HMACSHA1,
                 iterationCount: iterations,
                 numBytesRequested: 256 / 8
@@ -45,5 +45,6 @@ namespace Cantina.Services
                 numBytesRequested: 128 / 8
             ));
         }
+
     }
 }

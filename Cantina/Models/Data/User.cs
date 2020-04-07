@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Cantina.Models
 {
@@ -17,18 +16,9 @@ namespace Cantina.Models
         /// <summary>
         /// E-mail юзера, обязательно. Используется для авторизации вместо логина.
         /// </summary>
-        [Required, EmailAddress]
+        [Required]
         [MaxLength(64)]
         public string Email { get; set; }
-
-        /// <summary>
-        /// Никнейм
-        /// </summary>
-        [NotMapped]
-        [Required, Nickname]
-        public string Name { get => name; set { name = value; } }
-        
-        private string name;
 
         /// <summary>
         /// Подтверждён ли аккаунт. Сбрасывать на false при смене email'a.
@@ -66,49 +56,14 @@ namespace Cantina.Models
         public UserRoles Role { get; set; } = UserRoles.User;
 
         /// <summary>
-        /// Пол, по умолчанию - не определившийся
-        /// </summary>
-        public Gender Gender { get; set; } = Gender.Uncertain;
-
-        /// <summary>
-        /// Откуда юзер
-        /// </summary>
-        [Location]
-        [MaxLength(32)]
-        public string Location { get; set; }
-
-        /// <summary>
-        /// Дата рождения
-        /// </summary>
-        public DateTime? Birthday { get; set; }
-
-        /// <summary>
-        /// Количество минут, проведённых онлайн
-        /// </summary>
-        public int OnlineTime { get; set; }
-
-        /// <summary>
         /// Дата окончания блокировки
         /// </summary>
         public DateTime? EndBlockDate { get; set; }
 
         /// <summary>
-        /// Настройки профиля.
+        /// Навигационное свойство на профиль юзера
         /// </summary>
-        [NotMapped]
-        public UserSettings Settings
-        {
-            get
-            {
-                if (!String.IsNullOrEmpty(settings)) return JsonSerializer.Deserialize<UserSettings>(settings);
-                else return new UserSettings();
-            }
-            set
-            {
-                settings = JsonSerializer.Serialize<UserSettings>(value);
-            }
-        }
-        private string settings; // Настройки юзера в сериализованном виде
+        public UserProfile Profile { get; set; }
 
         /// <summary>
         /// Навигационное свойство ссылается на историю действий юзера.
