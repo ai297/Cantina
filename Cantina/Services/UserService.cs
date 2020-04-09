@@ -14,8 +14,8 @@ namespace Cantina.Services
     /// </summary>
     public class UserService
     {
-        DataContext database;
-        HashService hashService;
+        private readonly DataContext database;
+        private readonly HashService hashService;
 
         // сопоставление символов, считающихся похожими. только нижний регистр
         private static Dictionary<char, char> convertChars = new Dictionary<char, char>() {
@@ -89,7 +89,7 @@ namespace Cantina.Services
             return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
         }
         /// <summary>
-        /// Перегрузка ищет юзера по email
+        /// Ищет юзера по email
         /// </summary>
         public User GetUser(string email)
         {

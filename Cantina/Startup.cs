@@ -82,6 +82,7 @@ namespace Cantina
             services.AddScoped<UsersHistoryService>();                           // Сервис для работы с историй действий юзеров.
             services.AddScoped<UserService>();                                   // Сервис для работы с юзерами
             services.AddSingleton<OnlineService>();                                 // Cервис хранит список посетителей онлайн.
+            services.AddHostedService<OnlineUsersMonitor>();                        // Сервис следит за статусами юзеров в фоне.
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
@@ -90,7 +91,7 @@ namespace Cantina
                 //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);         // Частота отправки Ping-сообщений.
             });
-            services.AddControllers();                                              // Используем контроллеры из архитектуры MVC (без View).
+            services.AddMvc();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)

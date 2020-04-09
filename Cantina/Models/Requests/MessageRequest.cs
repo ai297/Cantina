@@ -9,7 +9,7 @@ namespace Cantina.Models.Requests
     {
         [Required, MaxLength(512)]
         public string Text { get; set; }
-        public MessageTypes MessageType { get; set; } = MessageTypes.Base;
-        public int[] Recipients { get; set; } = new int[0];
+        public MessageTypes MessageType { get; set; }
+        public int[] Recipients { get; set; }
     }
 }

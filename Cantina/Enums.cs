@@ -49,10 +49,10 @@
     /// </summary>
     public enum MessageTypes: byte
     {
-        System = 0,
-        Base = 10,
+        Base = 0,
+        Privat = 10,
         ThirdPerson = 20,
-        Privat = 30,
+        System = 100,
     }
 
 }

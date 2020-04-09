@@ -19,61 +19,65 @@ namespace Cantina.Controllers
     {
         // адрес для данного хаба
         public const string PATH = "/hub";
+        // список юзеров онлайн
+        private readonly OnlineService OnlineService;
 
-        OnlineService OnlineList;
-
+        // Id текущего юзера (из клеймов)
+        int CurrentUserId { get => Convert.ToInt32(Context.UserIdentifier); }
+        // роль текущего юзера (из клеймов)
+        UserRoles CurrentUserRole
+        {
+            get
+            {
+                UserRoles role;
+                if (Enum.TryParse<UserRoles>(Context.User.FindFirstValue(AuthOptions.Claims.Role), out role)) return role;
+                else return UserRoles.User;
+            }
+        }
+        // сессия текущего юзера (из списка онлайна)
         OnlineSession currentUser;
         OnlineSession CurrentUser { 
             get
             {
-                if (currentUser == null) currentUser = OnlineList.GetSessionInfo(CurrentUserId);
+                if (currentUser == null) currentUser = OnlineService.GetSessionInfo(CurrentUserId);
                 return currentUser;
             }
         }
-        int CurrentUserId { get => Convert.ToInt32(Context.UserIdentifier); }
-
-        //MessagesService messagesService;
 
         public MainHub(OnlineService onlineUsers, UsersHistoryService historyService)
         {
-            // подключаем зависимости
-            OnlineList = onlineUsers;
+            OnlineService = onlineUsers;
         }
 
         #region Подключение - Отключение
         /// <summary>
         /// Метод срабатывает при подключении нового клиента
+        /// и обавляет юзера в список онлайна
         /// </summary>
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
-            // регистрация юзера в списке онлайна
-            if(OnlineList.AddUser(CurrentUserId, Context.ConnectionId))
-            {
-                // оповещение о входе, если это новый юзер в списке
-                await Clients.All.ReceiveMessage(NewSystemMessage("В Кантину заходит <0>."));
-                // добавление юзера в список онлайна на клиенте всем, кроме текущего юзера
-                await Clients.Others.AddUserToOnlineList(CurrentUser);
-
-            }
+            await OnlineService.AddUser(CurrentUserId, Context.ConnectionId);
         }
 
         /// <summary>
         /// Метод срабатывает при отключении клиента
+        /// удаляет id текущего клиента из списка онлайна
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            //TODO: Сделать проверку - отключился юзер сам или вылетел
-
-            // удаление юзера из списка онлайн
-            if (CurrentUser != null && await OnlineList.RemoveUser(CurrentUserId, Context.ConnectionId))
-            {
-                // оповещение о выходе, если у юзера не осталось подключенных клиентов
-                await Clients.All.ReceiveMessage(NewSystemMessage("<0> покидает Кантину."));
-                // удаляем юзера из списке онлайна на всех клиентах
-                await Clients.All.RemoveUserFromOnlineList(CurrentUserId);
-            }
+            if (CurrentUser != null) OnlineService.RemoveConnection(CurrentUserId, Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
+        }
+
+        /// <summary>
+        /// Правильный выход из чата
+        /// Если у юзера активен один клиент - отправляем сообщение о выходе и удаляем юзера из списка у клиентов
+        /// </summary>
+        public async Task Exit()
+        {
+            await OnlineService.RemoveUser(CurrentUser.UserId);
+            Context.Abort();
         }
 
         #endregion
@@ -84,9 +88,10 @@ namespace Cantina.Controllers
         /// </summary>
         public async Task SendMessage(MessageRequest messageRequest)
         {
-            if (messageRequest.Text.Length < 3) return;
-            
+            if (messageRequest.Text.Length < 2) return;
+
             // TODO: Проверка на возможность отправки сообщения юзером
+            // если не админ отправляет системное сообщение - заменяем сообщение на обычное
 
             switch(messageRequest.MessageType)
             {
@@ -95,28 +100,49 @@ namespace Cantina.Controllers
                     // определяем список получателей, включая отправителя
                     List<string> recipients = new List<string>() { Context.UserIdentifier };
                     foreach (int id in messageRequest.Recipients) recipients.Add(id.ToString());
-                    await Clients.Users(recipients).ReceiveMessage(NewMessageFromResquest(messageRequest));
+                    await Clients.Users(recipients).ReceiveMessage(NewMessage(messageRequest.Text, messageRequest.Recipients, messageRequest.MessageType));
                     break;
+                // системные сообщения
+                case MessageTypes.System:
+                    if (CurrentUserRole != UserRoles.Admin)
+                    {
+                        messageRequest.MessageType = MessageTypes.Base;
+                    }
+                    goto default;
                 // Общее сообщение
                 default:
-                    await Clients.All.ReceiveMessage(NewMessageFromResquest(messageRequest));
+                    await Clients.All.ReceiveMessage(NewMessage(messageRequest.Text, messageRequest.Recipients, messageRequest.MessageType));
                     // TODO: Сделать сохранение сообщений в архиве
                     break;
             }
+            // обновляем время последней активности
+            CurrentUser.LastActivityTime = DateTime.UtcNow;
         }
 
-        private ChatMessage NewMessageFromResquest(MessageRequest messageRequest)
+        /// <summary>
+        /// Возвращает сообщение от текущего юзера
+        /// </summary>
+        private ChatMessage NewMessage(string text, int[] recipients, MessageTypes messageType = MessageTypes.Base)
+        {
+            return NewMessage(text, recipients, CurrentUser.UserId, CurrentUser.Name,
+                messageType, CurrentUser.NameStyle, CurrentUser.MessageStyle);
+        }
+        /// <summary>
+        /// Возвращает новое сообщение
+        /// </summary>
+        private ChatMessage NewMessage(string text, int[] recipients, int authorId = 0, string authorName = null,
+            MessageTypes messageType = MessageTypes.Base, string nameStyle = null, string messageStyle = null)
         {
             return new ChatMessage
             {
-                AuthorId = CurrentUserId,
-                AuthorName = CurrentUser.Name,
+                AuthorId = authorId,
+                AuthorName = authorName,
                 DateTime = DateTime.UtcNow,
-                Type = messageRequest.MessageType.ToString(),
-                Text = messageRequest.Text,
-                Recipients = messageRequest.Recipients,
-                NameStyle = CurrentUser.NameStyle,
-                MessageStyle = CurrentUser.MessageStyle
+                Type = messageType.ToString(),
+                Text = text,
+                Recipients = recipients,
+                NameStyle = nameStyle,
+                MessageStyle = messageStyle
             };
         }
 

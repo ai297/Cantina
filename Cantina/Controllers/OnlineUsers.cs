@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Cantina.Services;
 using Cantina.Models;
+using System.Collections.Generic;
 
 namespace Cantina.Controllers
 {
@@ -20,8 +21,7 @@ namespace Cantina.Controllers
         [HttpGet]
         public ActionResult GetOnlineUsers()
         {
-            var OnlineUsers = OnlineService.GetOnlineUsers();
-            return Ok(OnlineUsers);
+            return Ok(OnlineService.GetOnlineUsers());
         }
     }
 }
