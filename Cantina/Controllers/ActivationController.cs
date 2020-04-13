@@ -15,9 +15,9 @@ namespace Cantina.Controllers
     {
         UserService userService;
         HashService hashService;
-        UsersHistoryService historyService;
+        HistoryService historyService;
 
-        public ActivationController(UserService userService, HashService hashService, UsersHistoryService historyService)
+        public ActivationController(UserService userService, HashService hashService, HistoryService historyService)
         {
             this.userService = userService;
             this.hashService = hashService;

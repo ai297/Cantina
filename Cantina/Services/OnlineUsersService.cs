@@ -5,6 +5,7 @@ using Cantina.Models;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using System.Threading;
 using Microsoft.AspNetCore.SignalR;
@@ -15,24 +16,28 @@ namespace Cantina.Services
     /// <summary>
     /// Сервис хранит список юзеров онлайн.
     /// </summary>
-    public class OnlineService
+    public class OnlineUsersService
     {
         // сервисы
-        private readonly IServiceProvider Services;
-        private readonly ILogger<OnlineService> Logger;
-        private readonly IHubContext<MainHub, IChatClient> ChatHub;
+        private readonly IServiceProvider _services;
+        private readonly ILogger<OnlineUsersService> _logger;
+        private readonly IHubContext<MainHub, IChatClient> _chatHub;
+        private readonly bool _isDevelopMode;
+        private readonly MessageService _messageService;
 
         // список юзеров в онлайне
-        private Dictionary<int, OnlineSession> OnlineUsers;
+        private static Dictionary<int, OnlineSession> OnlineUsers = new Dictionary<int, OnlineSession>(30);
         // блокировщик для изменений списка юзеров
         private static object _locker = new object();
 
-        public OnlineService(IServiceProvider serviceProvider, ILogger<OnlineService> logger, IHubContext<MainHub, IChatClient> hub)
+        public OnlineUsersService(IServiceProvider serviceProvider, ILogger<OnlineUsersService> logger,
+            MessageService messageService, IHubContext<MainHub, IChatClient> hub, IWebHostEnvironment environment)
         {
-            OnlineUsers = new Dictionary<int, OnlineSession>();          // список юзеров онлайн
-            Services = serviceProvider;
-            Logger = logger;
-            ChatHub = hub;
+            _services = serviceProvider;
+            _logger = logger;
+            _chatHub = hub;
+            _messageService = messageService;
+            _isDevelopMode = environment.IsDevelopment();
         }
 
         /// <summary>
@@ -43,26 +48,29 @@ namespace Cantina.Services
             // Если юзера нет в списке онлайн - добавляем
             if (!OnlineUsers.ContainsKey(userId))
             {
-                using var scope = Services.CreateScope();
+                using var scope = _services.CreateScope();
                 var userService = scope.ServiceProvider.GetRequiredService<UserService>();
                 var userProfile = userService.GetUserProfile(userId);
                 lock(_locker)
                 {
                     OnlineUsers.Add(userId, new OnlineSession(connectionId, userProfile));
                 }
+                
+                if(_isDevelopMode) _logger.LogInformation("User '{0}' connected to chat", userProfile.Name);
 
                 // рассылаем сообщение о входе
-                await ChatHub.Clients.All.ReceiveMessage( new ChatMessage
+                var enterMessage = new ChatMessage
                 {
                     AuthorId = 0,
                     AuthorName = userProfile.Name,
                     DateTime = DateTime.UtcNow,
-                    Type = MessageTypes.System.ToString(),
+                    Type = MessageTypes.System,
                     Text = "В Кантину заходит <author />."
-                });
-                await ChatHub.Clients.AllExcept(connectionId).AddUserToOnlineList(OnlineUsers[userId]);
+                };
+                _messageService.AddMessage(enterMessage);
+                await _chatHub.Clients.All.ReceiveMessage(enterMessage);
+                await _chatHub.Clients.AllExcept(connectionId).AddUserToOnlineList(OnlineUsers[userId]);
 
-                Logger.LogInformation("User '{0}' connected to chat", userProfile.Name);
             }
             // если юзер в списке уже есть - меняем статус на онлайн и добавляем новое соединение
             else
@@ -72,7 +80,8 @@ namespace Cantina.Services
                     OnlineUsers[userId].AddConnection(connectionId);
                     OnlineUsers[userId].Status = UserOnlineStatus.Online;
                 }
-                Logger.LogInformation("User '{0}' is online", OnlineUsers[userId].Name);
+                
+                if(_isDevelopMode) _logger.LogInformation("User '{0}' is online", OnlineUsers[userId].Name);
             }
         }
 
@@ -89,7 +98,8 @@ namespace Cantina.Services
                     if (OnlineUsers[userId].Connections == 0)
                     {
                         OnlineUsers[userId].Status = UserOnlineStatus.Offline;
-                        Logger.LogInformation("User '{0}' is offline", OnlineUsers[userId].Name);
+                        
+                        if(_isDevelopMode) _logger.LogInformation("User '{0}' is offline", OnlineUsers[userId].Name);
                     }
                 }
             }
@@ -108,9 +118,9 @@ namespace Cantina.Services
                 // если больше 3х минут - сохраняем в профиле и в истории визитов
                 if (onlineTime > 3)
                 {
-                    using var scope = Services.CreateScope();
+                    using var scope = _services.CreateScope();
                     var userService = scope.ServiceProvider.GetRequiredService<UserService>();
-                    var historyService = scope.ServiceProvider.GetRequiredService<UsersHistoryService>();
+                    var historyService = scope.ServiceProvider.GetRequiredService<HistoryService>();
                     var profile = OnlineUsers[userId].GetProfile();
                     profile.OnlineTime += onlineTime;
                     await userService.UpdateUserProfileAsync(profile);
@@ -118,17 +128,21 @@ namespace Cantina.Services
                 }
 
                 // рассылаем уведомление о выходе из чата
-                await ChatHub.Clients.All.ReceiveMessage(new ChatMessage
+                var exitMessage = new ChatMessage
                 {
                     AuthorId = 0,
                     AuthorName = OnlineUsers[userId].Name,
                     DateTime = DateTime.UtcNow,
-                    Type = MessageTypes.System.ToString(),
+                    Type = MessageTypes.System,
                     Text = "<author /> покидает Кантину.",
-                });
-                await ChatHub.Clients.All.RemoveUserFromOnlineList(userId);
+                };
 
-                Logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, onlineTime);
+                _messageService.AddMessage(exitMessage);
+
+                await _chatHub.Clients.All.ReceiveMessage(exitMessage);
+                await _chatHub.Clients.All.RemoveUserFromOnlineList(userId);
+
+                if(_isDevelopMode) _logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, onlineTime);
 
                 lock (_locker)
                 {
@@ -144,9 +158,9 @@ namespace Cantina.Services
         /// </summary>
         public async Task CheckUsersStatus()
         {
-            using var scope = Services.CreateScope();
+            using var scope = _services.CreateScope();
             var userService = scope.ServiceProvider.GetRequiredService<UserService>();
-            var historyService = scope.ServiceProvider.GetRequiredService<UsersHistoryService>();
+            var historyService = scope.ServiceProvider.GetRequiredService<HistoryService>();
 
             foreach (var keyValues in OnlineUsers)
             {
@@ -164,24 +178,28 @@ namespace Cantina.Services
                         OnlineUsers.Remove(userSession.UserId);
                     }
 
-                    await ChatHub.Clients.All.ReceiveMessage(new ChatMessage
+                    var message = new ChatMessage
                     {
                         AuthorId = 0,
                         AuthorName = profile.Name,
                         DateTime = DateTime.UtcNow,
-                        Type = MessageTypes.System.ToString(),
-                        Text = "<0> куда-то пропадает..."
-                    });
-                    await ChatHub.Clients.All.RemoveUserFromOnlineList(profile.UserId);
+                        Type = MessageTypes.System,
+                        Text = "<author /> куда-то пропадает..."
+                    };
 
-                    Logger.LogInformation("User '{0}' romoved from online users.", profile.Name, onlineTime);
+                    _messageService.AddMessage(message);
+
+                    await _chatHub.Clients.All.ReceiveMessage(message);
+                    await _chatHub.Clients.All.RemoveUserFromOnlineList(profile.UserId);
+
+                    if(_isDevelopMode) _logger.LogInformation("User '{0}' romoved from online users.", profile.Name, onlineTime);
                 }
             }
         }
 
 
         /// <summary>
-        /// Сессия конкретного юзера вонлайне или null, если юзера нет.
+        /// Сессия конкретного юзера в онлайне или null, если юзера нет.
         /// </summary>
         public OnlineSession GetSessionInfo(int userId)
         {
@@ -195,8 +213,7 @@ namespace Cantina.Services
         public IEnumerable<OnlineSession> GetOnlineUsers()
         {
             return from keyValue in OnlineUsers
-                   where keyValue.Value.Status != UserOnlineStatus.Hidden   // Исключаем невидимсых.
-                   && keyValue.Value.Status != UserOnlineStatus.Offline     // И тех, кто уже отключился
+                   where keyValue.Value.Status != UserOnlineStatus.Hidden   // Исключаем невидимых.
                    select keyValue.Value;
         }
 

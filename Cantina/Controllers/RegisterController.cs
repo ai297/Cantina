@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Cantina.Services;
 using Cantina.Models.Requests;
 using Microsoft.Extensions.Logging;
@@ -15,9 +17,9 @@ namespace Cantina.Controllers
     {
         ILogger<RegisterController> Logger;
         UserService UserService;
-        UsersHistoryService HistoryService;
+        HistoryService HistoryService;
 
-        public RegisterController(UserService userService, UsersHistoryService historyService, ILogger<RegisterController> logger)
+        public RegisterController(UserService userService, HistoryService historyService, ILogger<RegisterController> logger)
         {
             UserService = userService;
             HistoryService = historyService;
@@ -28,7 +30,7 @@ namespace Cantina.Controllers
         /// Обрабатываем POST - запрос на регистрацию нового юзера
         /// </summary>
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] RegisterRequest request)
+        public async Task<ActionResult> Post([FromBody] RegisterRequest request, [FromServices] IWebHostEnvironment env)
         {
             // 1. Проверяем корректность данных в запросе
             if (!TryValidateModel(request, nameof(RegisterRequest))) return BadRequest("Некорректные данные.");
@@ -41,8 +43,9 @@ namespace Cantina.Controllers
             if(addedUser == null) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
             // 4. Запись в историю о регистрации.
             await HistoryService.NewActivityAsync(addedUser.Id, ActivityTypes.Register, $"Имя при регистрации - {addedUser.Profile.Name}");
-            // Лог о регистрации в консоли сервера
-            Logger.LogInformation("Accaunt '{0}' registered with Name is '{1}'.", addedUser.Email, addedUser.Profile.Name);
+           
+            
+            if(env.IsDevelopment()) Logger.LogInformation("Accaunt '{0}' registered with Name is '{1}'.", addedUser.Email, addedUser.Profile.Name);
             
             return Ok("Аккаунт успешно зарегистрирован. Необходима активация.");
         }

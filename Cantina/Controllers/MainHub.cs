@@ -19,13 +19,15 @@ namespace Cantina.Controllers
     {
         // адрес для данного хаба
         public const string PATH = "/hub";
-        // список юзеров онлайн
-        private readonly OnlineService OnlineService;
+        // сервисы
+        private readonly OnlineUsersService _onlineUsers;
+        private readonly MessageService _messageService;
+        private readonly ILogger<MainHub> _logger;
 
         // Id текущего юзера (из клеймов)
-        int CurrentUserId { get => Convert.ToInt32(Context.UserIdentifier); }
+        private int CurrentUserId { get => Convert.ToInt32(Context.UserIdentifier); }
         // роль текущего юзера (из клеймов)
-        UserRoles CurrentUserRole
+        private UserRoles CurrentUserRole
         {
             get
             {
@@ -35,18 +37,20 @@ namespace Cantina.Controllers
             }
         }
         // сессия текущего юзера (из списка онлайна)
-        OnlineSession currentUser;
-        OnlineSession CurrentUser { 
+        private OnlineSession _currentUser;
+        private OnlineSession CurrentUser { 
             get
             {
-                if (currentUser == null) currentUser = OnlineService.GetSessionInfo(CurrentUserId);
-                return currentUser;
+                if (_currentUser == null) _currentUser = _onlineUsers.GetSessionInfo(CurrentUserId);
+                return _currentUser;
             }
         }
 
-        public MainHub(OnlineService onlineUsers, UsersHistoryService historyService)
+        public MainHub(OnlineUsersService onlineUsers, MessageService messageService, ILogger<MainHub> logger)
         {
-            OnlineService = onlineUsers;
+            _onlineUsers = onlineUsers;
+            _messageService = messageService;
+            _logger = logger;
         }
 
         #region Подключение - Отключение
@@ -57,7 +61,14 @@ namespace Cantina.Controllers
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
-            await OnlineService.AddUser(CurrentUserId, Context.ConnectionId);
+            // отправляем клиенту n-последних сообщений в чате
+            var lastMessages = _messageService.GetLastMessages();
+            foreach(var message in lastMessages)
+            {
+                await Clients.Caller.ReceiveMessage(message);
+            }
+            // регистрируем клиента / юзера в списке онлайна
+            await _onlineUsers.AddUser(CurrentUserId, Context.ConnectionId);
         }
 
         /// <summary>
@@ -66,7 +77,7 @@ namespace Cantina.Controllers
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            if (CurrentUser != null) OnlineService.RemoveConnection(CurrentUserId, Context.ConnectionId);
+            if (CurrentUser != null) _onlineUsers.RemoveConnection(CurrentUserId, Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -76,7 +87,7 @@ namespace Cantina.Controllers
         /// </summary>
         public async Task Exit()
         {
-            await OnlineService.RemoveUser(CurrentUser.UserId);
+            await _onlineUsers.RemoveUser(CurrentUser.UserId);
             Context.Abort();
         }
 
@@ -92,6 +103,7 @@ namespace Cantina.Controllers
 
             // TODO: Проверка на возможность отправки сообщения юзером
             // если не админ отправляет системное сообщение - заменяем сообщение на обычное
+
 
             switch(messageRequest.MessageType)
             {
@@ -111,8 +123,10 @@ namespace Cantina.Controllers
                     goto default;
                 // Общее сообщение
                 default:
-                    await Clients.All.ReceiveMessage(NewMessage(messageRequest.Text, messageRequest.Recipients, messageRequest.MessageType));
-                    // TODO: Сделать сохранение сообщений в архиве
+                    var message = NewMessage(messageRequest.Text, messageRequest.Recipients, messageRequest.MessageType);
+                    // отправляем сообщение в кеш для архива и рассылаем по клиентам
+                    _messageService.AddMessage(message);
+                    await Clients.All.ReceiveMessage(message);
                     break;
             }
             // обновляем время последней активности
@@ -124,39 +138,20 @@ namespace Cantina.Controllers
         /// </summary>
         private ChatMessage NewMessage(string text, int[] recipients, MessageTypes messageType = MessageTypes.Base)
         {
-            return NewMessage(text, recipients, CurrentUser.UserId, CurrentUser.Name,
-                messageType, CurrentUser.NameStyle, CurrentUser.MessageStyle);
-        }
-        /// <summary>
-        /// Возвращает новое сообщение
-        /// </summary>
-        private ChatMessage NewMessage(string text, int[] recipients, int authorId = 0, string authorName = null,
-            MessageTypes messageType = MessageTypes.Base, string nameStyle = null, string messageStyle = null)
-        {
             return new ChatMessage
             {
-                AuthorId = authorId,
-                AuthorName = authorName,
+                AuthorId = CurrentUser.UserId,
+                AuthorName = CurrentUser.Name,
                 DateTime = DateTime.UtcNow,
-                Type = messageType.ToString(),
+                Type = messageType,
                 Text = text,
                 Recipients = recipients,
-                NameStyle = nameStyle,
-                MessageStyle = messageStyle
+                NameStyle = CurrentUser.NameStyle,
+                MessageStyle = CurrentUser.MessageStyle
             };
         }
 
-        private ChatMessage NewSystemMessage(string text)
-        {
-            return new ChatMessage
-            {
-                AuthorId = CurrentUserId,
-                AuthorName = CurrentUser.Name,
-                DateTime = DateTime.UtcNow,
-                Type = MessageTypes.System.ToString(),
-                Text = text,
-            };
-        }
+
         #endregion
     }
 }

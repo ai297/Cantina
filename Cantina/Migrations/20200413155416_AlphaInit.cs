@@ -4,10 +4,30 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Cantina.Migrations
 {
-    public partial class NewInit : Migration
+    public partial class AlphaInit : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Archive",
+                columns: table => new
+                {
+                    Id = table.Column<int>(nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AuthorName = table.Column<string>(maxLength: 20, nullable: true),
+                    AuthorId = table.Column<int>(nullable: false),
+                    DateTime = table.Column<DateTime>(nullable: false),
+                    Type = table.Column<byte>(nullable: false),
+                    Text = table.Column<string>(maxLength: 500, nullable: false),
+                    Recipients = table.Column<int[]>(nullable: true),
+                    NameStyle = table.Column<string>(nullable: true),
+                    MessageStyle = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Archive", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
@@ -33,13 +53,12 @@ namespace Cantina.Migrations
                 {
                     Id = table.Column<int>(nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(nullable: false),
+                    Name = table.Column<string>(nullable: true),
                     UserId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ForbiddenNames", x => x.Id);
-                    table.UniqueConstraint("AK_ForbiddenNames_Name", x => x.Name);
                     table.ForeignKey(
                         name: "FK_ForbiddenNames_Users_UserId",
                         column: x => x.UserId,
@@ -75,7 +94,7 @@ namespace Cantina.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<int>(nullable: false),
-                    Name = table.Column<string>(maxLength: 20, nullable: false),
+                    Name = table.Column<string>(maxLength: 20, nullable: true),
                     Gender = table.Column<byte>(nullable: false),
                     Location = table.Column<string>(maxLength: 32, nullable: true),
                     Description = table.Column<string>(maxLength: 255, nullable: true),
@@ -86,7 +105,6 @@ namespace Cantina.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserProfiles", x => x.UserId);
-                    table.UniqueConstraint("AK_UserProfiles_Name", x => x.Name);
                     table.ForeignKey(
                         name: "FK_UserProfiles_Users_UserId",
                         column: x => x.UserId,
@@ -94,6 +112,17 @@ namespace Cantina.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Archive_DateTime",
+                table: "Archive",
+                column: "DateTime");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ForbiddenNames_Name",
+                table: "ForbiddenNames",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ForbiddenNames_UserId",
@@ -104,10 +133,19 @@ namespace Cantina.Migrations
                 name: "IX_History_UserID",
                 table: "History",
                 column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserProfiles_Name",
+                table: "UserProfiles",
+                column: "Name",
+                unique: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Archive");
+
             migrationBuilder.DropTable(
                 name: "ForbiddenNames");
 

@@ -18,7 +18,7 @@ namespace Cantina.Services
         private readonly HashService hashService;
 
         // сопоставление символов, считающихся похожими. только нижний регистр
-        private static Dictionary<char, char> convertChars = new Dictionary<char, char>() {
+        private static readonly Dictionary<char, char> convertChars = new Dictionary<char, char>() {
             { 'а', 'a' },   // a-a, A-A
             { 'в', 'b' },   // В-B
             { 'е', 'e' },   // е-e, Е-E
@@ -88,6 +88,7 @@ namespace Cantina.Services
         {
             return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
         }
+
         /// <summary>
         /// Ищет юзера по email
         /// </summary>
@@ -95,18 +96,19 @@ namespace Cantina.Services
         {
             return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Email.Equals(email));
         }
+
         /// <summary>
         /// Метод обновляет информацию о юзере в базе
         /// </summary>
         public async Task<bool> UpdateUserAsync(User user)
         {
-            // если юзер не задан или его id равен 0 (не существует в базе данных) - ничего не делаем
+
             if (user == null || user.Id == 0) return false;
-            // обновляем юзера в базе данных
             database.Users.Update(user);
             var updated = await database.SaveChangesAsync();
             return updated > 0;
         }
+
         /// <summary>
         /// Метод проверяет имя на присутствие в таблице занятых имён
         /// </summary>

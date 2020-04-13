@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using Cantina.Models;
+
 
 namespace Cantina.Services
 {
@@ -9,7 +13,14 @@ namespace Cantina.Services
     /// </summary>
     public class DataContext : DbContext
     {
-        private IConfiguration conf;
+        private readonly IConfiguration _conf;
+        private readonly bool _isDevelopment;
+
+        private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+        });
+
         
         /// <summary>
         /// Аккаунты пользователей
@@ -27,16 +38,21 @@ namespace Cantina.Services
         /// Список занятых имён
         /// </summary>
         public DbSet<ForbiddenNames> ForbiddenNames { get; set; }
+        /// <summary>
+        /// Архив сообщений
+        /// </summary>
+        public DbSet<ChatMessage> Archive { get; set; }
 
-        public DataContext(DbContextOptions<DataContext> options, IConfiguration configuration) : base(options)
+        public DataContext(DbContextOptions<DataContext> options, IConfiguration configuration, IWebHostEnvironment environment) : base(options)
         {
-            conf = configuration;
-            //Database.EnsureCreated();   // Создаёт базу данных, если её нет
+            _conf = configuration;
+            _isDevelopment = environment.IsDevelopment();
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseNpgsql(conf.GetConnectionString("Default"));
+            optionsBuilder.UseNpgsql(_conf.GetConnectionString("Default"));
+            if (_isDevelopment) optionsBuilder.UseLoggerFactory(_loggerFactory);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,11 +60,12 @@ namespace Cantina.Services
             // сохраняем в базе так же приватные поля
             modelBuilder.Entity<User>().Property("password").HasColumnName("Password").IsRequired();
             modelBuilder.Entity<UserProfile>().Property("settings").HasColumnName("Settings");
-            // ключевые поля
-            modelBuilder.Entity<User>().HasAlternateKey(user => user.Email);                // email юзера - дополнительный ключ (уникальное поле)
-            modelBuilder.Entity<UserProfile>().HasKey(up => up.UserId);                     // UserId - ключ в таблице профиля
+            // ключевые поля и индексы
+            modelBuilder.Entity<User>().HasAlternateKey(user => user.Email);
+            modelBuilder.Entity<UserProfile>().HasKey(up => up.UserId);
             modelBuilder.Entity<ForbiddenNames>().HasIndex(fn => fn.Name).IsUnique();
-            modelBuilder.Entity<UserProfile>().HasIndex(up => up.Name).IsUnique();          // Никнейм в профиле - дополнительный ключ (уникальное значение)
+            modelBuilder.Entity<UserProfile>().HasIndex(up => up.Name).IsUnique();
+            modelBuilder.Entity<ChatMessage>().HasIndex(archive => archive.DateTime);
         }
     }
 }

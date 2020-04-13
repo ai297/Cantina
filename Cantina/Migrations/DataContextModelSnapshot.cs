@@ -19,6 +19,47 @@ namespace Cantina.Migrations
                 .HasAnnotation("ProductVersion", "3.1.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            modelBuilder.Entity("Cantina.Models.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AuthorName")
+                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(20);
+
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("MessageStyle")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NameStyle")
+                        .HasColumnType("text");
+
+                    b.Property<int[]>("Recipients")
+                        .HasColumnType("integer[]");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("character varying(500)")
+                        .HasMaxLength(500);
+
+                    b.Property<byte>("Type")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DateTime");
+
+                    b.ToTable("Archive");
+                });
+
             modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
                 {
                     b.Property<int>("Id")

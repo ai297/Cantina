@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Cantina.Controllers;
 using Cantina.Services;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace Cantina
 {
@@ -79,10 +80,11 @@ namespace Cantina
             });                               // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.
             //services.AddMemoryCache();                                              // Сервис для работы с кешем.
-            services.AddScoped<UsersHistoryService>();                           // Сервис для работы с историй действий юзеров.
-            services.AddScoped<UserService>();                                   // Сервис для работы с юзерами
-            services.AddSingleton<OnlineService>();                                 // Cервис хранит список посетителей онлайн.
-            services.AddHostedService<OnlineUsersMonitor>();                        // Сервис следит за статусами юзеров в фоне.
+            services.AddScoped<HistoryService>();                              // Сервис для работы с историй действий юзеров.
+            services.AddScoped<UserService>();                                      // Сервис для работы с юзерами
+            services.AddSingleton<OnlineUsersService>();                            // Cервис хранит список посетителей онлайн.
+            services.AddSingleton<MessageService>();                                // Сервис отвечает за список сообщений в вчате и сохранение архива.
+            services.AddHostedService<ChatTimerService>();                          // Сервис запускает фоновые задачи в чате по таймеру.
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
@@ -96,7 +98,15 @@ namespace Cantina
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
-                /// Настраиваем Middleware ///
+            var isHttpsRedirrect = Configuration.GetValue<bool>("HttpsRedirrection");
+            if(isHttpsRedirrect)
+            {
+                // TODO: Сделать Переадресацию на https.
+                app.UseHsts();
+                app.UseHttpsRedirection();
+            }
+
+            /// Настраиваем Middleware ///
             if (env.IsDevelopment())
             {
                 // Вывод сообщений об ошибках, если приложение на стадии разработки.
@@ -105,11 +115,13 @@ namespace Cantina
             }
             else
             {
-                // Переадресация на https.
-                app.UseHsts();
-                app.UseHttpsRedirection();
                 logger.LogInformation("Cantina Server is starting.");
+                app.UseForwardedHeaders(new ForwardedHeadersOptions
+                {
+                    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                });
             }
+
             app.UseRouting();                               // Подключаем маршрутизацию.
 
             // крос-доменные запросы.

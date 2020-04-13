@@ -9,11 +9,11 @@ namespace Cantina.Controllers
     /// <summary>
     /// Контроллер возвращает список юзеров онлайн
     /// </summary>
-    public class OnlineUsers : ApiBaseController
+    public class OnlineUsersController : ApiBaseController
     {
-        OnlineService OnlineService;
+        OnlineUsersService OnlineService;
 
-        public OnlineUsers(OnlineService onlineService)
+        public OnlineUsersController(OnlineUsersService onlineService)
         {
             OnlineService = onlineService;
         }

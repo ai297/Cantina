@@ -10,8 +10,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Cantina.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20200405084304_NewInit")]
-    partial class NewInit
+    [Migration("20200413155416_AlphaInit")]
+    partial class AlphaInit
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -21,6 +21,47 @@ namespace Cantina.Migrations
                 .HasAnnotation("ProductVersion", "3.1.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            modelBuilder.Entity("Cantina.Models.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AuthorName")
+                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(20);
+
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("MessageStyle")
+                        .HasColumnType("text");
+
+                    b.Property<string>("NameStyle")
+                        .HasColumnType("text");
+
+                    b.Property<int[]>("Recipients")
+                        .HasColumnType("integer[]");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("character varying(500)")
+                        .HasMaxLength(500);
+
+                    b.Property<byte>("Type")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DateTime");
+
+                    b.ToTable("Archive");
+                });
+
             modelBuilder.Entity("Cantina.Models.ForbiddenNames", b =>
                 {
                     b.Property<int>("Id")
@@ -29,7 +70,6 @@ namespace Cantina.Migrations
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("UserId")
@@ -37,7 +77,8 @@ namespace Cantina.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -128,7 +169,6 @@ namespace Cantina.Migrations
                         .HasMaxLength(32);
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("character varying(20)")
                         .HasMaxLength(20);
 
@@ -141,7 +181,8 @@ namespace Cantina.Migrations
 
                     b.HasKey("UserId");
 
-                    b.HasAlternateKey("Name");
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("UserProfiles");
                 });

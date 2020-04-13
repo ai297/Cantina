@@ -48,8 +48,8 @@ namespace Cantina.Controllers
 
         [HttpPatch]
         public async Task<ActionResult> UpdateUserInfo([FromBody] UserProfile request, 
-            [FromServices] OnlineService onlineService,
-            [FromServices] UsersHistoryService historyService,
+            [FromServices] OnlineUsersService onlineService,
+            [FromServices] HistoryService historyService,
             [FromServices] ILogger<UserInfoController> logger,
             [FromServices] IHubContext<MainHub, IChatClient> mainHub)
         {
