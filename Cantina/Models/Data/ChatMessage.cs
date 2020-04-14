@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 
 namespace Cantina.Models
@@ -17,7 +14,7 @@ namespace Cantina.Models
         public string AuthorName { get; set; }
 
         public int AuthorId { get; set; }
-        
+
         public DateTime DateTime { get; set; }
 
         public MessageTypes Type { get; set; } = MessageTypes.Base;
@@ -25,9 +22,9 @@ namespace Cantina.Models
         public string Text { get; set; }
 
         public int[] Recipients { get; set; } = new int[0];
-        
+
         public string NameStyle { get; set; }
-        
+
         public string MessageStyle { get; set; }
     }
 }

@@ -1,15 +1,14 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
+﻿using Cantina.Controllers;
 using Cantina.Models;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using System.Threading;
 using Microsoft.AspNetCore.SignalR;
-using Cantina.Controllers;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Cantina.Services
 {
@@ -51,12 +50,12 @@ namespace Cantina.Services
                 using var scope = _services.CreateScope();
                 var userService = scope.ServiceProvider.GetRequiredService<UserService>();
                 var userProfile = userService.GetUserProfile(userId);
-                lock(_locker)
+                lock (_locker)
                 {
                     OnlineUsers.Add(userId, new OnlineSession(connectionId, userProfile));
                 }
-                
-                if(_isDevelopMode) _logger.LogInformation("User '{0}' connected to chat", userProfile.Name);
+
+                if (_isDevelopMode) _logger.LogInformation("User '{0}' connected to chat", userProfile.Name);
 
                 // рассылаем сообщение о входе
                 var enterMessage = new ChatMessage
@@ -80,8 +79,8 @@ namespace Cantina.Services
                     OnlineUsers[userId].AddConnection(connectionId);
                     OnlineUsers[userId].Status = UserOnlineStatus.Online;
                 }
-                
-                if(_isDevelopMode) _logger.LogInformation("User '{0}' is online", OnlineUsers[userId].Name);
+
+                if (_isDevelopMode) _logger.LogInformation("User '{0}' is online", OnlineUsers[userId].Name);
             }
         }
 
@@ -92,14 +91,14 @@ namespace Cantina.Services
         {
             if (OnlineUsers.ContainsKey(userId))
             {
-                lock(_locker)
+                lock (_locker)
                 {
                     OnlineUsers[userId].RemoveConnection(connectionId);
                     if (OnlineUsers[userId].Connections == 0)
                     {
                         OnlineUsers[userId].Status = UserOnlineStatus.Offline;
-                        
-                        if(_isDevelopMode) _logger.LogInformation("User '{0}' is offline", OnlineUsers[userId].Name);
+
+                        if (_isDevelopMode) _logger.LogInformation("User '{0}' is offline", OnlineUsers[userId].Name);
                     }
                 }
             }
@@ -142,7 +141,7 @@ namespace Cantina.Services
                 await _chatHub.Clients.All.ReceiveMessage(exitMessage);
                 await _chatHub.Clients.All.RemoveUserFromOnlineList(userId);
 
-                if(_isDevelopMode) _logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, onlineTime);
+                if (_isDevelopMode) _logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, onlineTime);
 
                 lock (_locker)
                 {
@@ -150,7 +149,7 @@ namespace Cantina.Services
                 }
 
             }
-            
+
         }
 
         /// <summary>
@@ -165,7 +164,7 @@ namespace Cantina.Services
             foreach (var keyValues in OnlineUsers)
             {
                 var userSession = keyValues.Value;
-                if(userSession.Status == UserOnlineStatus.Offline)
+                if (userSession.Status == UserOnlineStatus.Offline)
                 {
                     var profile = userSession.GetProfile();
                     var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
@@ -192,7 +191,7 @@ namespace Cantina.Services
                     await _chatHub.Clients.All.ReceiveMessage(message);
                     await _chatHub.Clients.All.RemoveUserFromOnlineList(profile.UserId);
 
-                    if(_isDevelopMode) _logger.LogInformation("User '{0}' romoved from online users.", profile.Name, onlineTime);
+                    if (_isDevelopMode) _logger.LogInformation("User '{0}' romoved from online users.", profile.Name, onlineTime);
                 }
             }
         }

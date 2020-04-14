@@ -1,11 +1,7 @@
-﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Cantina.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
-using Cantina.Services;
+using System;
+using System.Threading.Tasks;
 
 
 namespace Cantina.Controllers

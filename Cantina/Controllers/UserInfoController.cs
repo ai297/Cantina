@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
-using Cantina.Models;
+﻿using Cantina.Models;
 using Cantina.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
@@ -23,7 +20,7 @@ namespace Cantina.Controllers
         {
             this.UserService = userService;
         }
-        
+
         /// <summary>
         /// На запрос без параметров возвращается полная информация о текущем юзере
         /// </summary>
@@ -47,7 +44,7 @@ namespace Cantina.Controllers
         }
 
         [HttpPatch]
-        public async Task<ActionResult> UpdateUserInfo([FromBody] UserProfile request, 
+        public async Task<ActionResult> UpdateUserInfo([FromBody] UserProfile request,
             [FromServices] OnlineUsersService onlineService,
             [FromServices] HistoryService historyService,
             [FromServices] ILogger<UserInfoController> logger,
@@ -61,7 +58,7 @@ namespace Cantina.Controllers
             var profile = UserService.GetUserProfile(userId);
             // если изменено имя - проверяем новое на доступность
             var isNameChange = !profile.Name.Equals(request.Name);
-            if(isNameChange && UserService.CheckNameForForbidden(request.Name))
+            if (isNameChange && UserService.CheckNameForForbidden(request.Name))
                 return BadRequest("Имя уже занято либо запрещено.");
             // Фиксим изменение времени онлайна
             request.OnlineTime = profile.OnlineTime;
@@ -70,7 +67,7 @@ namespace Cantina.Controllers
             if (isUpdated)
             {
                 // если изменено имя - сохраняем запись в лог и в историю
-                if(isNameChange)
+                if (isNameChange)
                 {
                     await historyService.NewActivityAsync(userId, ActivityTypes.ChangeName, $"Изменил имя с '{profile.Name}' на '{request.Name}'");
                     logger.LogInformation($"User '{profile.Name}' change name to '{request.Name}'");

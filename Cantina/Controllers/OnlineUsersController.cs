@@ -1,8 +1,5 @@
-﻿using System;
+﻿using Cantina.Services;
 using Microsoft.AspNetCore.Mvc;
-using Cantina.Services;
-using Cantina.Models;
-using System.Collections.Generic;
 
 namespace Cantina.Controllers
 {

@@ -3,7 +3,6 @@
     "CantinaServer": {
       "commandName": "Project",
       "environmentVariables": {
-        "SECURITY_KEY": "very_long_and_very_secret_key",
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "http://localhost:5000"

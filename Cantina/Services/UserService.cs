@@ -1,11 +1,9 @@
-﻿using System;
-using System.Text;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Cantina.Models;
 using Microsoft.EntityFrameworkCore;
-using Cantina.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Cantina.Services
 {
@@ -42,13 +40,13 @@ namespace Cantina.Services
             { ' ', '_' },   // -_
             { '\u00A0', '_' }, // -_
         };
-        
+
         public UserService(DataContext context, HashService hashService)
         {
             this.database = context;                // подключаем сервис контекста базы данных
             this.hashService = hashService;         // сервис хэширования
         }
-        
+
         /// <summary>
         /// Метод создаёт нового юзера на основе полученных данных.
         /// </summary>
@@ -144,9 +142,9 @@ namespace Cantina.Services
             name = name.ToLower();
             var fbname = new StringBuilder();
             char newCh;
-            foreach(char ch in name)
+            foreach (char ch in name)
             {
-                if(ch != ' ')
+                if (ch != ' ')
                 {
                     if (convertChars.TryGetValue(ch, out newCh))
                     {

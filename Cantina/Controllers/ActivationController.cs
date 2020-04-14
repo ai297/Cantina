@@ -1,9 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using Cantina.Models.Requests;
+using Cantina.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Cantina.Services;
-using Cantina.Models.Requests;
+using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
@@ -44,7 +43,7 @@ namespace Cantina.Controllers
 
             if (user == null) return NotFound("Аккаунт не найден.");
 
-            if(user.Confirmed == true) return Ok("Аккаунт уже был активирован.");
+            if (user.Confirmed == true) return Ok("Аккаунт уже был активирован.");
 
             if (request.ActivationCode.Equals(getValidationCode(user.Email)))
             {

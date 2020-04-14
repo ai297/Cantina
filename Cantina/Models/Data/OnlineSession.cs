@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Cantina.Models
 {
@@ -26,7 +24,8 @@ namespace Cantina.Models
         /// <summary>
         /// CSS стиль отображения ника
         /// </summary>
-        public string NameStyle {
+        public string NameStyle
+        {
             get
             {
                 if (Profile.Settings != null && Profile.Settings.NameStyle != null) return Profile.Settings.NameStyle.ToString();
@@ -36,7 +35,8 @@ namespace Cantina.Models
         /// <summary>
         /// CSS стиль отображения сообщения
         /// </summary>
-        public string MessageStyle {
+        public string MessageStyle
+        {
             get
             {
                 if (Profile.Settings != null && Profile.Settings.MessageStyle != null) return Profile.Settings.MessageStyle.ToString();
@@ -90,7 +90,7 @@ namespace Cantina.Models
         public OnlineSession(string connectionId, UserProfile userProfile)
         {
             Profile = userProfile;
-            
+
             EnterTime = DateTime.UtcNow;
             ConnectionIDs = new HashSet<string> { connectionId };
             LastActivityTime = DateTime.UtcNow;

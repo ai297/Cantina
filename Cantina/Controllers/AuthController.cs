@@ -1,10 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
+﻿using Cantina.Models.Requests;
 using Cantina.Services;
-using Cantina.Models.Requests;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Security.Claims;
 
 namespace Cantina.Controllers
 {
@@ -44,7 +43,7 @@ namespace Cantina.Controllers
             if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
             // Генерируем и возвращаем токен
             var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
-            return Ok( new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
+            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
         }
 
         /// <summary>

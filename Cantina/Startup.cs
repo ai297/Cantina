@@ -1,20 +1,19 @@
+using Cantina.Controllers;
+using Cantina.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
-using Cantina.Controllers;
-using Cantina.Services;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.HttpOverrides;
 
 namespace Cantina
 {
@@ -26,18 +25,21 @@ namespace Cantina
         {
             Configuration = configuration;
         }
-        
+
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(options => {
-                options.AddDefaultPolicy(builder => {
-                    builder.WithOrigins(Configuration.GetSection("CorsOrigins").Get<string[]>())
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.SetIsOriginAllowed(isOriginAllowed: _ => true)
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     .AllowCredentials();
                 });
             });                                       // Крос-доменные http запросы.
-            services.AddDbContext<DataContext>(options => {
+            services.AddDbContext<DataContext>(options =>
+            {
                 options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
             });                     // Контекст базы данных.
             services.AddTransient<HashService>();                                   // Сервис для хэширования (например пароля)
@@ -51,7 +53,7 @@ namespace Cantina
                         ValidIssuer = AuthOptions.Issuer,                                       // Валидный издатель
                         ValidateAudience = false,                                               // Проверять ли аудиторию.
                         ValidateLifetime = true,                                                // Проверка времени жизни токена.
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SECURITY_KEY"])),  // Ключ безопасности.
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.GetValue<string>("SECURITY_KEY"))),  // Ключ безопасности.
                         ValidateIssuerSigningKey = true                                         // Проверка ключа безопасности.
                     };
 
@@ -89,7 +91,7 @@ namespace Cantina
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
                 hubOptions.EnableDetailedErrors = true;                         // TODO: заменить на false;
-                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);    // Если в течении 10 минут нет сообщений от клиента - закрыть соединение.
+                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);    // Если в течении 1 минут нет сообщений от клиента - закрыть соединение.
                 //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);         // Частота отправки Ping-сообщений.
             });
@@ -99,7 +101,7 @@ namespace Cantina
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
             var isHttpsRedirrect = Configuration.GetValue<bool>("HttpsRedirrection");
-            if(isHttpsRedirrect)
+            if (isHttpsRedirrect)
             {
                 // TODO: Сделать Переадресацию на https.
                 app.UseHsts();
@@ -115,7 +117,8 @@ namespace Cantina
             }
             else
             {
-                logger.LogInformation("Cantina Server is starting.");
+                var version = Configuration.GetValue<string>("ServerVersion");
+                logger.LogInformation($"Cantina Server is starting. \n {version}");
                 app.UseForwardedHeaders(new ForwardedHeadersOptions
                 {
                     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

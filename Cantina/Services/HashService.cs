@@ -1,8 +1,7 @@
-﻿using System;
-using System.Text;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Microsoft.Extensions.Configuration;
-using Cantina.Models;
+using System;
+using System.Text;
 
 namespace Cantina.Services
 {

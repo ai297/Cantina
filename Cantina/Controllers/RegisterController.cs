@@ -1,11 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using Cantina.Models.Requests;
+using Cantina.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
-using Cantina.Services;
-using Cantina.Models.Requests;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
@@ -40,13 +40,13 @@ namespace Cantina.Controllers
 
             // 3. Добавлем нового юзера.
             var addedUser = await UserService.AddUserAsync(request.Email, request.Name, request.Password);
-            if(addedUser == null) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
+            if (addedUser == null) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
             // 4. Запись в историю о регистрации.
             await HistoryService.NewActivityAsync(addedUser.Id, ActivityTypes.Register, $"Имя при регистрации - {addedUser.Profile.Name}");
-           
-            
-            if(env.IsDevelopment()) Logger.LogInformation("Accaunt '{0}' registered with Name is '{1}'.", addedUser.Email, addedUser.Profile.Name);
-            
+
+
+            if (env.IsDevelopment()) Logger.LogInformation("Accaunt '{0}' registered with Name is '{1}'.", addedUser.Email, addedUser.Profile.Name);
+
             return Ok("Аккаунт успешно зарегистрирован. Необходима активация.");
         }
     }

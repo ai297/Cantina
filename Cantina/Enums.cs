@@ -47,7 +47,7 @@
     /// <summary>
     /// Типы сообщений
     /// </summary>
-    public enum MessageTypes: byte
+    public enum MessageTypes : byte
     {
         Base = 0,
         Privat = 10,

@@ -7,12 +7,12 @@ namespace Cantina.Controllers
     /// Web-страница сервера для проверки его доступности.
     /// </summary>
     [Route("")]
-    public class DefaultController: Controller
+    public class DefaultController : Controller
     {
         [Route("")]
         public IActionResult Index([FromServices] IConfiguration configuration)
         {
-            return View("Index", configuration["ServerVersion"]);
+            return View("Index", configuration.GetValue<string>("ServerVersion"));
         }
 
         /// <summary>

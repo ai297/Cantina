@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Cantina.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using Cantina.Models;
 
 namespace Cantina.Services
 {
@@ -22,8 +21,8 @@ namespace Cantina.Services
             _database = context;
             _logger = logger;
         }
-        
-        
+
+
         /// <summary>
         /// Метод сохраняет в базе новую запись об активности юзера
         /// </summary>
@@ -43,7 +42,7 @@ namespace Cantina.Services
                 var added = await _database.SaveChangesAsync();
                 return added > 0;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 _logger.LogError(e, e.Message);
                 return false;

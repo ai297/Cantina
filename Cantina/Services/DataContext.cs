@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Cantina.Models;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Cantina.Models;
+using Microsoft.Extensions.Logging;
 
 
 namespace Cantina.Services
@@ -21,7 +21,7 @@ namespace Cantina.Services
             builder.AddConsole();
         });
 
-        
+
         /// <summary>
         /// Аккаунты пользователей
         /// </summary>

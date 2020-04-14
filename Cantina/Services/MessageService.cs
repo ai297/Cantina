@@ -1,15 +1,14 @@
-﻿using System;
+﻿using Cantina.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
-using Cantina.Models;
 
 namespace Cantina.Services
 {
@@ -41,7 +40,7 @@ namespace Cantina.Services
             // лишняя проверка, что бы приватное сообщение не попало в архив - не повредит
             if (message.Type == MessageTypes.Privat) return;
 
-            lock(_locker)
+            lock (_locker)
             {
                 Messages.Add(message);
             }
@@ -63,7 +62,7 @@ namespace Cantina.Services
         {
             // Сохраняем все сообщения кроме тех, которые уже были сохранены
             int messagesToSaveCount = Messages.Count - _savedMessages;
-            if(messagesToSaveCount > 0)
+            if (messagesToSaveCount > 0)
             {
                 using var scope = _services.CreateScope();
                 var dataBase = scope.ServiceProvider.GetRequiredService<DataContext>();
@@ -80,7 +79,7 @@ namespace Cantina.Services
                     return;
                 }
             }
-            
+
             // Удаляем старые сообщения, оставляя только MaxOldMessagesToShow последних
             int messagesToRemoveCount = (Messages.Count > _maxOldMessagesToShow) ? Messages.Count - _maxOldMessagesToShow : 0;
             lock (_locker) Messages.RemoveRange(0, messagesToRemoveCount);

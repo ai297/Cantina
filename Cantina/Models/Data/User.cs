@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Text;
-using System.Text.Json;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -12,7 +10,7 @@ namespace Cantina.Models
     public class User
     {
         public int Id { get; set; }
-        
+
         /// <summary>
         /// E-mail юзера, обязательно. Используется для авторизации вместо логина.
         /// </summary>

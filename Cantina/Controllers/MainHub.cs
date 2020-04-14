@@ -1,13 +1,13 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using Cantina.Models;
+using Cantina.Models.Requests;
+using Cantina.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
-using Cantina.Services;
-using Cantina.Models;
-using Cantina.Models.Requests;
+using System.Threading.Tasks;
 
 namespace Cantina.Controllers
 {
@@ -38,7 +38,8 @@ namespace Cantina.Controllers
         }
         // сессия текущего юзера (из списка онлайна)
         private OnlineSession _currentUser;
-        private OnlineSession CurrentUser { 
+        private OnlineSession CurrentUser
+        {
             get
             {
                 if (_currentUser == null) _currentUser = _onlineUsers.GetSessionInfo(CurrentUserId);
@@ -63,7 +64,7 @@ namespace Cantina.Controllers
             await base.OnConnectedAsync();
             // отправляем клиенту n-последних сообщений в чате
             var lastMessages = _messageService.GetLastMessages();
-            foreach(var message in lastMessages)
+            foreach (var message in lastMessages)
             {
                 await Clients.Caller.ReceiveMessage(message);
             }
@@ -105,7 +106,7 @@ namespace Cantina.Controllers
             // если не админ отправляет системное сообщение - заменяем сообщение на обычное
 
 
-            switch(messageRequest.MessageType)
+            switch (messageRequest.MessageType)
             {
                 // Приватное сообщение
                 case MessageTypes.Privat:

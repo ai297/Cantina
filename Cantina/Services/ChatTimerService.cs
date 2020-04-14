@@ -1,9 +1,7 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +13,7 @@ namespace Cantina.Services
     public class ChatTimerService : BackgroundService
     {
         private int ChatTimerPeriod;
-        
+
         private readonly ILogger<ChatTimerService> _logger;
         private readonly OnlineUsersService _onlineUsers;
         private readonly MessageService _messageService;

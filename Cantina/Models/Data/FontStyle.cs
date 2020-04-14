@@ -1,7 +1,4 @@
-﻿using System;
-
-
-namespace Cantina.Models
+﻿namespace Cantina.Models
 {
     /// <summary>
     /// Стиль сообщения

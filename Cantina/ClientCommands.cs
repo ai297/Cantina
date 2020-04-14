@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace Cantina
+﻿namespace Cantina
 {
     /// <summary>
     /// Названия клиентских комманд, выполняемых со стороны сервера
