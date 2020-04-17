@@ -46,7 +46,7 @@ namespace Cantina
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)      // Сервис авторизации юзеров с использованием токенов.
                 .AddJwtBearer(options =>
                 {
-                    options.RequireHttpsMetadata = false;   //TODO: заменить false на true
+                    options.RequireHttpsMetadata = false;                                       //TODO: заменить false на true?
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,                                                  // Проверять ли издателя токена.
@@ -82,7 +82,7 @@ namespace Cantina
             });                               // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.
             //services.AddMemoryCache();                                              // Сервис для работы с кешем.
-            services.AddScoped<HistoryService>();                              // Сервис для работы с историй действий юзеров.
+            services.AddScoped<HistoryService>();                                   // Сервис для работы с историй действий юзеров.
             services.AddScoped<UserService>();                                      // Сервис для работы с юзерами
             services.AddSingleton<OnlineUsersService>();                            // Cервис хранит список посетителей онлайн.
             services.AddSingleton<MessageService>();                                // Сервис отвечает за список сообщений в вчате и сохранение архива.
@@ -90,10 +90,10 @@ namespace Cantina
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
-                hubOptions.EnableDetailedErrors = true;                         // TODO: заменить на false;
-                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);    // Если в течении 1 минут нет сообщений от клиента - закрыть соединение.
-                //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);         // Время ожидания подтверждения о подключении от юзера, сек.
-                hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);         // Частота отправки Ping-сообщений.
+                hubOptions.EnableDetailedErrors = true;                             // TODO: заменить на false;
+                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);         // Если в течении 1 минут нет сообщений от клиента - закрыть соединение.
+                //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);             // Время ожидания подтверждения о подключении от юзера, сек.
+                hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);            // Частота отправки Ping-сообщений.
             });
             services.AddMvc();
         }
