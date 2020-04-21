@@ -1,4 +1,6 @@
-﻿namespace Cantina.Models
+﻿using System;
+
+namespace Cantina.Models
 {
     public struct RGBColor
     {
@@ -27,6 +29,23 @@
         public bool isNotABlack()
         {
             return (R + G + B) > 0;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is RGBColor color && Equals(color);
+        }
+
+        public bool Equals(RGBColor other)
+        {
+            return R == other.R &&
+                   G == other.G &&
+                   B == other.B;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(R, G, B);
         }
     }
 }

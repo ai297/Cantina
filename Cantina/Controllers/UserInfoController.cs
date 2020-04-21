@@ -1,7 +1,9 @@
 ﻿using Cantina.Models;
 using Cantina.Services;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Claims;
@@ -14,11 +16,11 @@ namespace Cantina.Controllers
     /// </summary>
     public class UserInfoController : ApiBaseController
     {
-        UserService UserService;
+        private readonly OnlineUsersService _onlineUsers;
 
-        public UserInfoController(UserService userService)
+        public UserInfoController(OnlineUsersService onlineService)
         {
-            this.UserService = userService;
+            _onlineUsers = onlineService;
         }
 
         /// <summary>
@@ -37,50 +39,58 @@ namespace Cantina.Controllers
         [HttpGet("{userId}")]
         public ActionResult GetUserInfo(int userId)
         {
-            // TODO: заменить выдачу на UserProfile
-            var profile = UserService.GetUserProfile(userId);
-            if (profile == null) return BadRequest();
-            else return Ok(profile);
+            var userSession = _onlineUsers.GetSessionInfo(userId);
+
+            if (userSession == null) return BadRequest();
+            else
+            {
+                var profile = userSession.GetProfile();
+                return Ok(profile);
+            }
         }
 
+        /// <summary>
+        /// Обновление профиля юзера в списке онлайна. Обновить профиль оффлайновому юзеру этим методом нельзя
+        /// </summary>
         [HttpPatch]
         public async Task<ActionResult> UpdateUserInfo([FromBody] UserProfile request,
-            [FromServices] OnlineUsersService onlineService,
-            [FromServices] HistoryService historyService,
-            [FromServices] ILogger<UserInfoController> logger,
+            [FromServices] UserService userService,
             [FromServices] IHubContext<MainHub, IChatClient> mainHub)
         {
+            // 1. Проверяем данные запроса
             if (!TryValidateModel(request)) return BadRequest("Некорректный запрос.");
+            
+            // 2. Получаем ID и роль юзера из токена авторизации
             var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(AuthOptions.Claims.ID));
             var userRole = HttpContext.User.FindFirstValue(AuthOptions.Claims.Role);
-            // проверяем подмену id юзера - чужой профиль может менять только админ
+            
+            // 3. Проверяем подмену id юзера - чужой профиль может менять только админ
             if (userId != request.UserId && !userRole.Equals(UserRoles.Admin.ToString())) return Forbid("Недостаточно прав доступа.");
-            var profile = UserService.GetUserProfile(userId);
-            // если изменено имя - проверяем новое на доступность
+
+            // 4. Ищем юзера в списке онлайна, если его там нет - ошибка.
+            var userSession = _onlineUsers.GetSessionInfo(userId);
+            if(userSession == null || userSession.Status == UserOnlineStatus.Offline) return BadRequest("Профиль не найден.");
+
+            // 5. Проверяем есть ли изменения в профиле. Если нет изменений - больше ничего не делаем.
+            var profile = userSession.GetProfile();
+            if (request == profile) return Ok();
+
+            // 6. Если изменено имя - проверяем новое на доступность
             var isNameChange = !profile.Name.Equals(request.Name);
-            if (isNameChange && UserService.CheckNameForForbidden(request.Name))
+            if (isNameChange && userService.CheckNameForForbidden(request.Name))
                 return BadRequest("Имя уже занято либо запрещено.");
-            // Фиксим изменение времени онлайна
+
+            // 7. Фиксим изменение времени онлайна
             request.OnlineTime = profile.OnlineTime;
 
-            var isUpdated = await UserService.UpdateUserProfileAsync(request);
-            if (isUpdated)
+            // 8. Сохраняем изменения профиля в памяти (только в списке онлайна, не в базе - в бае обновятся данные при выходе из чата)
+            if (_onlineUsers.UpdateUserProfile(request))
             {
-                // если изменено имя - сохраняем запись в лог и в историю
-                if (isNameChange)
-                {
-                    await historyService.NewActivityAsync(userId, ActivityTypes.ChangeName, $"Изменил имя с '{profile.Name}' на '{request.Name}'");
-                    logger.LogInformation($"User '{profile.Name}' change name to '{request.Name}'");
-                }
-                // если юзер онлайн - обновляем о нём информацию и рассылаем уведомление об этом клиентам
-                if (onlineService.UpdateUserProfileInSession(request))
-                {
-                    var session = onlineService.GetSessionInfo(userId);
-                    if (session.Status != UserOnlineStatus.Hidden && session.Status != UserOnlineStatus.Offline) await mainHub.Clients.All.AddUserToOnlineList(session);
-                    session.LastActivityTime = DateTime.UtcNow;
-                }
+                if (userSession.Status != UserOnlineStatus.Hidden && userSession.Status != UserOnlineStatus.Offline) await mainHub.Clients.All.AddUserToOnlineList(userSession);
+                userSession.LastActivityTime = DateTime.UtcNow;
+                return Ok("Профиль успешно обновлён.");
             }
-            return Ok();
+            else return BadRequest("Не удалось обновить профиль");
         }
     }
 }

@@ -58,7 +58,7 @@ namespace Cantina.Models
         /// <summary>
         /// Статус сессии - в сети, не в сети, отошёл и т.д.
         /// </summary>
-        public UserOnlineStatus Status { get; set; } = UserOnlineStatus.Online;
+        public UserOnlineStatus Status { get; set; }
         /// <summary>
         /// Время последней активности
         /// </summary>
@@ -87,13 +87,13 @@ namespace Cantina.Models
         }
         #endregion
 
-        public OnlineSession(string connectionId, UserProfile userProfile)
+        public OnlineSession(string connectionId, UserProfile userProfile, UserOnlineStatus onlineStatus = UserOnlineStatus.Online)
         {
             Profile = userProfile;
-
             EnterTime = DateTime.UtcNow;
             ConnectionIDs = new HashSet<string> { connectionId };
             LastActivityTime = DateTime.UtcNow;
+            Status = onlineStatus;
         }
     }
 }

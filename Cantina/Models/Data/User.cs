@@ -61,7 +61,7 @@ namespace Cantina.Models
         /// <summary>
         /// Навигационное свойство на профиль юзера
         /// </summary>
-        public UserProfile Profile { get; set; }
+        public virtual UserProfile Profile { get; set; }
 
         /// <summary>
         /// Навигационное свойство ссылается на историю действий юзера.
