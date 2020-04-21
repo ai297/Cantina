@@ -104,11 +104,19 @@ namespace Cantina.Controllers
         /// </summary>
         public async Task SendMessage(MessageRequest messageRequest)
         {
+            // Если юзер был не онлайн - меняем статус на онлайн
+            // TODO: сделать более сложную проверку статусов, что бы невидимый становился видимым с сообщением о входе, "отошедший" возвращался с уведомлением.
+            if(CurrentUser.Status != UserOnlineStatus.Online)
+            {
+                CurrentUser.Status = UserOnlineStatus.Online;
+                await Clients.All.AddUserToOnlineList(CurrentUser);
+            }
+            
+            
             if (messageRequest.Text.Length < 2) return;
 
             // TODO: Проверка на возможность отправки сообщения юзером
             // если не админ отправляет системное сообщение - заменяем сообщение на обычное
-
 
             switch (messageRequest.MessageType)
             {

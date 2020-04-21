@@ -183,7 +183,7 @@ namespace Cantina.Services
                     await _chatHub.Clients.All.ReceiveMessage(exitMessage);
                 }
                 await _chatHub.Clients.All.RemoveUserFromOnlineList(userId);
-                if (_isDevelopMode) _logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, onlineTime);
+                if (_isDevelopMode) _logger.LogInformation("User '{0}' disconnected after {1} min.", OnlineUsers[userId].Name, (onlineTime > 0) ? onlineTime : 0);
                 
                 // удаляем юзера из памяти
                 lock (_locker)
@@ -196,11 +196,13 @@ namespace Cantina.Services
         }
 
         /// <summary>
-        /// Метод удаляет из списка всех юзеров со статусом offline
+        /// Метод проверяет состояние списка юзеров онлайн
+        /// помечает неактивных юзеров
+        /// удаляет из списка всех юзеров со статусом offline
         /// и сохраняет обновлённое время онлайна в профиле
         /// а так же добавляет запись о визите в таблицу действий
         /// </summary>
-        public async Task CheckUsersStatus(TimeSpan interval)
+        public async Task CheckUsersStatus(TimeSpan offlineInterval, TimeSpan inactivityTime)
         {   
             List<UserProfile> updatedProfiles = new List<UserProfile>();
             List<UserHistory> historyData = new List<UserHistory>();
@@ -208,11 +210,25 @@ namespace Cantina.Services
             foreach (var keyValues in OnlineUsers)
             {
                 var userSession = keyValues.Value;
-                if (userSession.Status == UserOnlineStatus.Offline && (nowTime - userSession.LastActivityTime) > interval)
+
+                // если юзер неактивен дольше определенного времени - помечаем как неактивного
+                if(userSession.Status == UserOnlineStatus.Online && (nowTime - userSession.LastActivityTime) > inactivityTime)
                 {
+                    userSession.Status = UserOnlineStatus.NotActive;
                     var profile = userSession.GetProfile();
                     var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
                     profile.OnlineTime += onlineTime;
+                    updatedProfiles.Add(profile);   // обновляем время онлайна в профиле
+                    userSession.EnterTime = nowTime;
+                    await _chatHub.Clients.All.AddUserToOnlineList(userSession); // рассылаем клиентам новые данные сессии юзера
+                    if (_isDevelopMode) _logger.LogInformation("Set 'Not Active' status for user '{0}' ", profile.Name);
+                }
+                // если юзер отмечен как оффлайн - удаляем из памяти
+                else if (userSession.Status == UserOnlineStatus.Offline && (nowTime - userSession.LastActivityTime) > offlineInterval)
+                {
+                    var profile = userSession.GetProfile();
+                    var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
+                    if(onlineTime > 0) profile.OnlineTime += onlineTime;
                     updatedProfiles.Add(profile);
                     historyData.Add(new UserHistory
                     {

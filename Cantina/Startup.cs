@@ -30,7 +30,7 @@ namespace Cantina
         {
             // настройка конфигурации
             services.Configure<ApiOptions>(Configuration.GetSection("ApiOptions"));
-            services.Configure<ServicesOptions>(Configuration.GetSection("ServicesOptions"));
+            services.Configure<IntevalsOptions>(Configuration.GetSection("IntevalsOptions"));
 
             services.AddCors(options =>
             {
