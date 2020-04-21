@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -46,6 +47,9 @@ namespace Cantina.Controllers
                 return _currentUser;
             }
         }
+
+        // шаблон для удаления всех тегов из текста сообщения, кроме разрешенных
+        private const string _stripHtmlTagsPattern = @"<(?!/?((user)|(author)|(smile)))[^>]*(?:\s/)?>";
 
         public MainHub(OnlineUsersService onlineUsers, MessageService messageService, ILogger<MainHub> logger)
         {
@@ -139,6 +143,9 @@ namespace Cantina.Controllers
         /// </summary>
         private ChatMessage NewMessage(string text, int[] recipients, MessageTypes messageType = MessageTypes.Base)
         {
+            var regex = new Regex(_stripHtmlTagsPattern, RegexOptions.IgnoreCase);
+            text = regex.Replace(text, String.Empty);
+
             return new ChatMessage
             {
                 AuthorId = CurrentUser.UserId,
