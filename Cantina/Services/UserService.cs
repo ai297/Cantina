@@ -4,8 +4,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Cantina.Models;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Cantina.Models;
+
 
 namespace Cantina.Services
 {
@@ -17,10 +19,8 @@ namespace Cantina.Services
         private readonly DataContext _dataBase;
         private readonly HashService _hashService;
         private readonly IMemoryCache _memoryCache;
-        
-        // время хранения данных юзера в кеше
-        private const int _cachTime = 60;
-        
+        private readonly MemoryCacheEntryOptions _cacheOptions; // время хранения данных в кеше
+
         // сопоставление символов, считающихся похожими. только нижний регистр
         private static readonly Dictionary<char, char> convertChars = new Dictionary<char, char>() {
             { 'а', 'a' },   // a-a, A-A
@@ -47,11 +47,12 @@ namespace Cantina.Services
             { '\u00A0', '_' }, // -_
         };
 
-        public UserService(DataContext context, HashService hashService, IMemoryCache cache)
+        public UserService(DataContext context, HashService hashService, IMemoryCache cache, IOptions<IntevalsOptions> options)
         {
             _dataBase = context;
             _hashService = hashService;
             _memoryCache = cache;
+            _cacheOptions = new MemoryCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(options.Value.UserCacheTime) };
         }
 
         /// <summary>
@@ -102,7 +103,7 @@ namespace Cantina.Services
             if (!_memoryCache.TryGetValue<User>(id, out user))
             {
                 user = _dataBase.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
-                _memoryCache.Set<User>(user.Id, user, TimeSpan.FromMinutes(_cachTime));
+                if(user != null) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
             }
             return user;
         }
@@ -113,7 +114,7 @@ namespace Cantina.Services
         public User GetUser(string email)
         {
             var user = _dataBase.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Email.Equals(email));
-            _memoryCache.Set<User>(user.Id, user, TimeSpan.FromMinutes(_cachTime));
+            if (user != null) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
             return user;
         }
 
@@ -133,7 +134,7 @@ namespace Cantina.Services
             try
             {
                 var added = await _dataBase.SaveChangesAsync() > 0;
-                if (added) _memoryCache.Set<User>(user.Id, user, TimeSpan.FromMinutes(_cachTime));
+                if (added) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
                 return added;
             }
             catch (Exception)
@@ -142,26 +143,26 @@ namespace Cantina.Services
             }
         }
 
-        /// <summary>
-        /// Метод обновляет информацию о юзере в базе
-        /// </summary>
-        public async Task<bool> UpdateUserAsync(User user)
-        {
-
-            if (user == null || user.Id == 0) return false;
-            _dataBase.Users.Update(user);
-            var updated = await _dataBase.SaveChangesAsync() > 0;
-            if (updated) _memoryCache.Set<User>(user.Id, user, TimeSpan.FromMinutes(_cachTime));
-            return updated;
-        }
 
         /// <summary>
-        /// Метод проверяет имя на присутствие в таблице занятых имён
+        /// Метод проверяет модель имени на занятость
         /// </summary>
         public bool CheckNameForForbidden(string name)
         {
-            var result = _dataBase.ForbiddenNames.Where(fn => fn.Name.Equals(GetNameModel(name))).ToArray().Count();
-            return result > 0;
+            var count = _dataBase.ForbiddenNames.Where(fn => fn.Name.Equals(GetNameModel(name))).Count();
+            return count > 0;
+        }
+
+
+        /// <summary>
+        /// Обновляем имя юзера в таблице запрещенных имен
+        /// </summary>
+        public async Task UpdateForbiddenName(int userId, string newName)
+        {
+            var fName = await _dataBase.ForbiddenNames.Where(fn => fn.UserId == userId).SingleOrDefaultAsync();
+            fName.Name = GetNameModel(newName);
+            _dataBase.ForbiddenNames.Update(fName);
+            await _dataBase.SaveChangesAsync();
         }
 
         /// <summary>
@@ -173,33 +174,12 @@ namespace Cantina.Services
             if (!_memoryCache.TryGetValue<User>(userId, out user))
             {
                 user = GetUser(userId);
-                _memoryCache.Set<User>(userId, user, TimeSpan.FromMinutes(_cachTime));
+                _memoryCache.Set<User>(userId, user, _cacheOptions);
                 return user.Profile;
             }
             return (user == null) ? null : user.Profile;
         }
 
-        /// <summary>
-        /// Метод обновляет профиль юзера
-        /// </summary>
-        public async Task<bool> UpdateUserProfileAsync(UserProfile profile)
-        {
-            if (profile == null || profile.UserId == 0) return false;
-            var forbiddenName = _dataBase.ForbiddenNames.Where(fn => fn.UserId == profile.UserId).FirstOrDefault();
-            forbiddenName.Name = GetNameModel(profile.Name);
-            _dataBase.UserProfiles.Update(profile);
-            _dataBase.ForbiddenNames.Update(forbiddenName);
-            var updated = await _dataBase.SaveChangesAsync() > 0;
-            
-            User user;
-            if(updated && _memoryCache.TryGetValue<User>(profile.UserId, out user))
-            {
-                user.Profile = profile;
-                _memoryCache.Set<User>(user.Id, user, TimeSpan.FromMinutes(_cachTime));
-            }
-
-            return updated;
-        }
 
         private string GetNameModel(string name)
         {

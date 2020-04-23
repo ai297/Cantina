@@ -87,6 +87,11 @@ namespace Cantina.Models
         }
         #endregion
 
+        /// <summary>
+        /// Исходное имя юзера при логине
+        /// </summary>
+        public string OriginalName { get; }
+
         public OnlineSession(string connectionId, UserProfile userProfile, UserOnlineStatus onlineStatus = UserOnlineStatus.Online)
         {
             Profile = userProfile;
@@ -94,6 +99,7 @@ namespace Cantina.Models
             ConnectionIDs = new HashSet<string> { connectionId };
             LastActivityTime = DateTime.UtcNow;
             Status = onlineStatus;
+            OriginalName = userProfile.Name;
         }
     }
 }

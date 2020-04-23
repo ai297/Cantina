@@ -86,6 +86,7 @@ namespace Cantina.Controllers
             // 8. Сохраняем изменения профиля в памяти (только в списке онлайна, не в базе - в бае обновятся данные при выходе из чата)
             if (_onlineUsers.UpdateUserProfile(request))
             {
+                if (isNameChange) await userService.UpdateForbiddenName(userId, request.Name); // обновить имя в таблице запрещенных имен
                 if (userSession.Status != UserOnlineStatus.Hidden && userSession.Status != UserOnlineStatus.Offline) await mainHub.Clients.All.AddUserToOnlineList(userSession);
                 userSession.LastActivityTime = DateTime.UtcNow;
                 return Ok("Профиль успешно обновлён.");

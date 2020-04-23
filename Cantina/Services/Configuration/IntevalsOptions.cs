@@ -18,6 +18,11 @@
         /// </summary>
         public int InactivityTime { get; set; } = 15;
 
+        /// <summary>
+        /// "Скользящее" время жизни кеша юзеров
+        /// </summary>
+        public int UserCacheTime { get; set; } = 30;
+
         public IntevalsOptions() { }
     }
 }

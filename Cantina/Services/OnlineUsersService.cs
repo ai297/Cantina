@@ -2,6 +2,7 @@
 using Cantina.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,8 @@ namespace Cantina.Services
         private readonly IHubContext<MainHub, IChatClient> _chatHub;
         private readonly bool _isDevelopMode;
         private readonly MessageService _messageService;
+        private readonly IMemoryCache _memoryCache;
+        private readonly MemoryCacheEntryOptions _cacheOptions; // время хранения данных в кеше
 
         // список юзеров в онлайне
         private static Dictionary<int, OnlineSession> OnlineUsers = new Dictionary<int, OnlineSession>(30);
@@ -31,13 +34,15 @@ namespace Cantina.Services
         private static object _locker = new object();
 
         public OnlineUsersService(IServiceProvider serviceProvider, ILogger<OnlineUsersService> logger,
-            MessageService messageService, IHubContext<MainHub, IChatClient> hub, IWebHostEnvironment env)
+            MessageService messageService, IHubContext<MainHub, IChatClient> hub, IWebHostEnvironment env, IMemoryCache cache, IOptions<IntevalsOptions> options)
         {
             _services = serviceProvider;
             _logger = logger;
             _chatHub = hub;
             _messageService = messageService;
             _isDevelopMode = env.IsDevelopment();
+            _memoryCache = cache;
+            _cacheOptions = new MemoryCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(options.Value.UserCacheTime) };
         }
 
         /// <summary>
@@ -122,7 +127,10 @@ namespace Cantina.Services
                 {
                     if (OnlineUsers[userId].Status != UserOnlineStatus.Hidden)
                     {
-                        OnlineUsers[userId].Status = UserOnlineStatus.Offline;
+                        lock(_locker)
+                        {
+                            OnlineUsers[userId].Status = UserOnlineStatus.Offline;
+                        }
                         if (_isDevelopMode) _logger.LogInformation("User '{0}' is offline", OnlineUsers[userId].Name);
                     }
                     else
@@ -150,7 +158,17 @@ namespace Cantina.Services
                 profile.OnlineTime += onlineTime;
                 using var scope = _services.CreateScope();
                 var dataBase = scope.ServiceProvider.GetRequiredService<DataContext>();
-                dataBase.Update<UserProfile>(profile);
+                dataBase.UserProfiles.Update(profile);
+
+                // запись в истории об изменении имени
+                if (!OnlineUsers[userId].OriginalName.Equals(profile.Name)) dataBase.History.Add(new UserHistory
+                {
+                    Date = DateTime.UtcNow,
+                    Type = ActivityTypes.ChangeName,
+                    UserID = profile.UserId,
+                    Description = $"{OnlineUsers[userId].OriginalName}>{profile.Name}"
+                });
+
                 if (onlineTime > 3) dataBase.History.Add(new UserHistory            // "Визит" сохраняем в иторию только если онлайн больше 3х минут
                 {
                     Date = DateTime.UtcNow,
@@ -161,6 +179,12 @@ namespace Cantina.Services
                 try
                 {
                     await dataBase.SaveChangesAsync();
+                    User user = null;
+                    if(_memoryCache.TryGetValue<User>(profile.UserId, out user))
+                    {
+                        user.Profile = profile;
+                        _memoryCache.Set<User>(user.Id, user, _cacheOptions);
+                    }
                     if (_isDevelopMode) _logger.LogInformation("{0}'s profile has been successfully updated.", profile.Name);
                 }
                 catch (Exception ex)
@@ -203,33 +227,50 @@ namespace Cantina.Services
         /// а так же добавляет запись о визите в таблицу действий
         /// </summary>
         public async Task CheckUsersStatus(TimeSpan offlineInterval, TimeSpan inactivityTime)
-        {   
+        {
+            var nowTime = DateTime.UtcNow;
             List<UserProfile> updatedProfiles = new List<UserProfile>();
             List<UserHistory> historyData = new List<UserHistory>();
-            var nowTime = DateTime.Now;
+
             foreach (var keyValues in OnlineUsers)
             {
                 var userSession = keyValues.Value;
+                var profile = userSession.GetProfile();
+                var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
 
                 // если юзер неактивен дольше определенного времени - помечаем как неактивного
-                if(userSession.Status == UserOnlineStatus.Online && (nowTime - userSession.LastActivityTime) > inactivityTime)
+                if (userSession.Status == UserOnlineStatus.Online && (nowTime - userSession.LastActivityTime) > inactivityTime)
                 {
-                    userSession.Status = UserOnlineStatus.NotActive;
-                    var profile = userSession.GetProfile();
-                    var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
-                    profile.OnlineTime += onlineTime;
+                    lock (_locker)
+                    {
+                        userSession.Status = UserOnlineStatus.NotActive;
+                        profile.OnlineTime += onlineTime;
+                        userSession.EnterTime = nowTime;
+                    }
                     updatedProfiles.Add(profile);   // обновляем время онлайна в профиле
-                    userSession.EnterTime = nowTime;
                     await _chatHub.Clients.All.AddUserToOnlineList(userSession); // рассылаем клиентам новые данные сессии юзера
+                    
                     if (_isDevelopMode) _logger.LogInformation("Set 'Not Active' status for user '{0}' ", profile.Name);
+
                 }
                 // если юзер отмечен как оффлайн - удаляем из памяти
                 else if (userSession.Status == UserOnlineStatus.Offline && (nowTime - userSession.LastActivityTime) > offlineInterval)
                 {
-                    var profile = userSession.GetProfile();
-                    var onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
-                    if(onlineTime > 0) profile.OnlineTime += onlineTime;
+                    lock (_locker)
+                    {
+                        if (onlineTime > 0) profile.OnlineTime += onlineTime;
+                        OnlineUsers.Remove(userSession.UserId);
+                    }
                     updatedProfiles.Add(profile);
+                    // запись в истории об изменении имени
+                    if(!userSession.OriginalName.Equals(profile.Name)) historyData.Add(new UserHistory
+                    {
+                        Date = nowTime,
+                        Type = ActivityTypes.ChangeName,
+                        UserID = userSession.UserId,
+                        Description = $"{userSession.OriginalName}>{profile.Name}"
+                    });
+
                     historyData.Add(new UserHistory
                     {
                         Date = nowTime,
@@ -237,10 +278,6 @@ namespace Cantina.Services
                         UserID = userSession.UserId,
                         Description = onlineTime.ToString()
                     });
-                    lock (_locker)
-                    {
-                        OnlineUsers.Remove(userSession.UserId);
-                    }
                     var message = new ChatMessage
                     {
                         AuthorId = 0,
@@ -252,12 +289,22 @@ namespace Cantina.Services
                     _messageService.AddMessage(message);
                     await _chatHub.Clients.All.ReceiveMessage(message);
                     await _chatHub.Clients.All.RemoveUserFromOnlineList(profile.UserId);
-                    if (_isDevelopMode) _logger.LogInformation("User '{0}' romoved from online users.", profile.Name, onlineTime);
+                    if (_isDevelopMode) _logger.LogInformation("User '{0}' romoved from online users.", profile.Name);
+                }
+
+                // обновляем кеш
+                User user = null;
+                if (_memoryCache.TryGetValue<User>(profile.UserId, out user))
+                {
+                    user.Profile = profile;
+                    _memoryCache.Set<User>(user.Id, user, _cacheOptions);
                 }
             }
+
             if (updatedProfiles.Count == 0 && historyData.Count == 0) return;
             using var scope = _services.CreateScope();
             var dataBase = scope.ServiceProvider.GetRequiredService<DataContext>();
+
             dataBase.UpdateRange(updatedProfiles);
             dataBase.AddRange(historyData);
             try
