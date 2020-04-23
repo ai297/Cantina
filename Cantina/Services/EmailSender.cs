@@ -16,7 +16,7 @@ namespace Cantina.Services
             var emailMessage = new MimeMessage(); 
 
             emailMessage.From.Add(new MailboxAddress("Администрация сайта", "email-отправителя")); //email отправителя должен совпадать с указанным в Authenticate
-            emailMessage.To.Add(new MailboxAddress("Пользователь:", "email-получателя"));
+            emailMessage.To.Add(new MailboxAddress("", email));
             emailMessage.Subject = subject;
             emailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Html) //упаковывает сообщение в html файл
             {
