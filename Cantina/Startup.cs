@@ -28,6 +28,10 @@ namespace Cantina
 
         public void ConfigureServices(IServiceCollection services)
         {
+            // настройка конфигурации
+            services.Configure<ApiOptions>(Configuration.GetSection("ApiOptions"));
+            services.Configure<IntevalsOptions>(Configuration.GetSection("IntevalsOptions"));
+
             services.AddCors(options =>
             {
                 options.AddDefaultPolicy(builder =>
@@ -81,8 +85,7 @@ namespace Cantina
                 });
             });                               // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.
-            //services.AddMemoryCache();                                              // Сервис для работы с кешем.
-            services.AddScoped<HistoryService>();                                   // Сервис для работы с историй действий юзеров.
+            services.AddMemoryCache();                                              // Сервис для работы с кешем.
             services.AddScoped<UserService>();                                      // Сервис для работы с юзерами
             services.AddSingleton<OnlineUsersService>();                            // Cервис хранит список посетителей онлайн.
             services.AddSingleton<MessageService>();                                // Сервис отвечает за список сообщений в вчате и сохранение архива.
@@ -91,7 +94,6 @@ namespace Cantina
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
                 hubOptions.EnableDetailedErrors = true;                             // TODO: заменить на false;
-                hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);         // Если в течении 1 минут нет сообщений от клиента - закрыть соединение.
                 //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);             // Время ожидания подтверждения о подключении от юзера, сек.
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);            // Частота отправки Ping-сообщений.
             });
@@ -100,25 +102,18 @@ namespace Cantina
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
         {
-            var isHttpsRedirrect = Configuration.GetValue<bool>("HttpsRedirrection");
-            if (isHttpsRedirrect)
-            {
-                // TODO: Сделать Переадресацию на https.
-                app.UseHsts();
-                app.UseHttpsRedirection();
-            }
 
             /// Настраиваем Middleware ///
             if (env.IsDevelopment())
             {
                 // Вывод сообщений об ошибках, если приложение на стадии разработки.
                 app.UseDeveloperExceptionPage();
-                logger.LogWarning(new EventId(0, "StartUp"), "Cantina Server started in development mode.");
+                logger.LogWarning(new EventId(0, "StartUp"), "\n\n Cantina Server started in DEVELOPMENT mode. \n\n");
             }
             else
             {
                 var version = Configuration.GetValue<string>("ServerVersion");
-                logger.LogInformation($"Cantina Server is starting. \n {version}");
+                logger.LogInformation($"\n\n Cantina Server started. \n {version}\n\n");
                 app.UseForwardedHeaders(new ForwardedHeadersOptions
                 {
                     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

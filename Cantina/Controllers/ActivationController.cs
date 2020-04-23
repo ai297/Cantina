@@ -14,13 +14,11 @@ namespace Cantina.Controllers
     {
         UserService userService;
         HashService hashService;
-        HistoryService historyService;
 
-        public ActivationController(UserService userService, HashService hashService, HistoryService historyService)
+        public ActivationController(UserService userService, HashService hashService)
         {
             this.userService = userService;
             this.hashService = hashService;
-            this.historyService = historyService;
         }
 
         //GET activation/email/user@mail.net
@@ -34,6 +32,9 @@ namespace Cantina.Controllers
             return Ok($"Код активации для {email}: {getValidationCode(email)}");
         }
 
+        /// <summary>
+        /// Активация аккаунта
+        /// </summary>
         [AllowAnonymous, HttpPut]
         public async Task<ActionResult> ActivateAccaunt(ActivationRequest request)
         {
@@ -47,17 +48,11 @@ namespace Cantina.Controllers
 
             if (request.ActivationCode.Equals(getValidationCode(user.Email)))
             {
-                // если юзер с данным email существует и код активации введён верно - активируем аккаунт.
-                user.Confirmed = true;
-                var result = await userService.UpdateUserAsync(user);
-                if (result)
-                {
-                    _ = historyService.NewActivityAsync(user.Id, ActivityTypes.Activation);
-                    return Ok("Аккаунт успешно активирован.");
-                }
+                if (await userService.Activate(user)) return Ok("Аккаунт успешно активирован. Добро пожаловать в Кантину!");
+                else return BadRequest("Что-то пошло не по плану..");
             }
 
-            return BadRequest("Активация провалилась.");
+            return BadRequest("Активация не удалась.");
         }
 
         private string getValidationCode(string value)

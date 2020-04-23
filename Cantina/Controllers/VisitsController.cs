@@ -11,27 +11,27 @@ namespace Cantina.Controllers
     /// </summary>
     public class VisitsController : ApiBaseController
     {
-        private readonly HistoryService _historyService;
-
-        public VisitsController(HistoryService historyService)
-        {
-            _historyService = historyService;
-        }
 
 
-        /// <summary>
-        /// Метод возвращает список всех визитов за конкретную дату. Поддерживается постраничный вывод.
-        /// </summary>
-        [HttpGet("{date?}/{quantity?}/{page?}")]
-        public async Task<ActionResult> GetMessages(string date, int quantity = -1, int page = 0)
-        {
-            DateTime historyDate;
-            if (String.IsNullOrEmpty(date)) historyDate = DateTime.UtcNow;
-            else if (!DateTime.TryParseExact(date, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out historyDate)) return BadRequest();
+        //public VisitsController(HistoryService historyService)
+        //{
+        //    _historyService = historyService;
+        //}
 
-            var visits = await _historyService.GetActivitysOfDate(historyDate.Date, ActivityTypes.Visit, quantity, page);
-            return Ok(visits);
-        }
+
+        ///// <summary>
+        ///// Метод возвращает список всех визитов за конкретную дату. Поддерживается постраничный вывод.
+        ///// </summary>
+        //[HttpGet("{date?}/{quantity?}/{page?}")]
+        //public async Task<ActionResult> GetMessages(string date, int quantity = -1, int page = 0)
+        //{
+        //    DateTime historyDate;
+        //    if (String.IsNullOrEmpty(date)) historyDate = DateTime.UtcNow;
+        //    else if (!DateTime.TryParseExact(date, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out historyDate)) return BadRequest();
+
+        //    var visits = await _historyService.GetActivitysOfDate(historyDate.Date, ActivityTypes.Visit, quantity, page);
+        //    return Ok(visits);
+        //}
 
     }
 }

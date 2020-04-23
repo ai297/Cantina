@@ -1,14 +1,16 @@
-﻿using Cantina.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Cantina.Models;
 
 namespace Cantina.Services
 {
@@ -25,14 +27,34 @@ namespace Cantina.Services
         private static object _locker = new object();
         private static int _savedMessages = 0;
         // количество последних сообщений, выводимых юзеру
-        private readonly int _maxOldMessagesToShow;
+        private readonly int _messagesBufferSize;
 
-        public MessageService(IServiceProvider provider, IConfiguration config, ILogger<MessageService> logger)
+        // шаблон для удаления html-тегов
+        public Regex StripTagsPattern { get; }
+
+        public MessageService(IServiceProvider provider, ILogger<MessageService> logger, IOptions<ApiOptions> apiOptions)
         {
             _services = provider;
             _logger = logger;
-            var maxOldMessagesToShow = config.GetValue<int>("MaxOldMessagesToShow");
-            _maxOldMessagesToShow = (maxOldMessagesToShow > 0) ? maxOldMessagesToShow : 20;
+            _messagesBufferSize = (apiOptions.Value.MessagesBufferSize > 0) ? apiOptions.Value.MessagesBufferSize : 20;
+            logger.LogInformation("Messages buffer size - " + _messagesBufferSize);
+            var stripTagsPattern = new StringBuilder("<");
+            var allowedTags = new StringBuilder();
+            if (apiOptions.Value.AllowedTags.Count > 0)
+            {
+                stripTagsPattern.Append("(?!/?(");
+                int i = 0;
+                for (; i < apiOptions.Value.AllowedTags.Count - 1; i++)
+                {
+                    stripTagsPattern.Append($"({apiOptions.Value.AllowedTags[i]})|");
+                    allowedTags.Append(apiOptions.Value.AllowedTags[i] + ", ");
+                }
+                stripTagsPattern.Append($"({apiOptions.Value.AllowedTags[i]})))");
+                allowedTags.Append(apiOptions.Value.AllowedTags[i]);
+            }
+            stripTagsPattern.Append(@"[^>]*(?:\s/)?>");
+            StripTagsPattern = new Regex(stripTagsPattern.ToString());
+            logger.LogInformation("Allowed tags: " + allowedTags.ToString());
         }
 
         public void AddMessage(ChatMessage message)
@@ -51,7 +73,7 @@ namespace Cantina.Services
         /// </summary>
         public IEnumerable<ChatMessage> GetLastMessages()
         {
-            int count = (Messages.Count > _maxOldMessagesToShow) ? _maxOldMessagesToShow : Messages.Count;
+            int count = (Messages.Count > _messagesBufferSize) ? _messagesBufferSize : Messages.Count;
             return Messages.TakeLast<ChatMessage>(count);
         }
 
@@ -81,7 +103,7 @@ namespace Cantina.Services
             }
 
             // Удаляем старые сообщения, оставляя только MaxOldMessagesToShow последних
-            int messagesToRemoveCount = (Messages.Count > _maxOldMessagesToShow) ? Messages.Count - _maxOldMessagesToShow : 0;
+            int messagesToRemoveCount = (Messages.Count > _messagesBufferSize) ? Messages.Count - _messagesBufferSize : 0;
             lock (_locker) Messages.RemoveRange(0, messagesToRemoveCount);
 
             // Обновляем количество оставшихся уже сохранённых сообщений

@@ -1,9 +1,13 @@
-﻿using Cantina.Models;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
+﻿using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Cantina.Models;
+
 
 namespace Cantina.Services
 {
@@ -12,8 +16,10 @@ namespace Cantina.Services
     /// </summary>
     public class UserService
     {
-        private readonly DataContext database;
-        private readonly HashService hashService;
+        private readonly DataContext _dataBase;
+        private readonly HashService _hashService;
+        private readonly IMemoryCache _memoryCache;
+        private readonly MemoryCacheEntryOptions _cacheOptions; // время хранения данных в кеше
 
         // сопоставление символов, считающихся похожими. только нижний регистр
         private static readonly Dictionary<char, char> convertChars = new Dictionary<char, char>() {
@@ -41,10 +47,12 @@ namespace Cantina.Services
             { '\u00A0', '_' }, // -_
         };
 
-        public UserService(DataContext context, HashService hashService)
+        public UserService(DataContext context, HashService hashService, IMemoryCache cache, IOptions<IntevalsOptions> options)
         {
-            this.database = context;                // подключаем сервис контекста базы данных
-            this.hashService = hashService;         // сервис хэширования
+            _dataBase = context;
+            _hashService = hashService;
+            _memoryCache = cache;
+            _cacheOptions = new MemoryCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(options.Value.UserCacheTime) };
         }
 
         /// <summary>
@@ -62,15 +70,22 @@ namespace Cantina.Services
                 }
             };
             // Хэшируем пароль.
-            var hashedPassword = hashService.Get256Hash(password, email);
+            var hashedPassword = _hashService.Get256Hash(password, email);
             user.SetPassword(hashedPassword);
             // Сохраняем в базу.
             try
             {
                 // добавляем юзера в базу данных
-                database.Users.Add(user);
-                database.ForbiddenNames.Add(new ForbiddenNames { Name = GetNameModel(user.Profile.Name), User = user });
-                await database.SaveChangesAsync();
+                _dataBase.Users.Add(user);
+                _dataBase.ForbiddenNames.Add(new ForbiddenNames { Name = GetNameModel(user.Profile.Name), User = user });
+                _dataBase.History.Add(new UserHistory
+                {
+                    Date = DateTime.UtcNow,
+                    Type = ActivityTypes.Register,
+                    User = user,
+                    Description = user.Profile.Name
+                });
+                await _dataBase.SaveChangesAsync();
                 return user;
             }
             catch
@@ -84,7 +99,13 @@ namespace Cantina.Services
         /// </summary>
         public User GetUser(int id)
         {
-            return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
+            User user = null;
+            if (!_memoryCache.TryGetValue<User>(id, out user))
+            {
+                user = _dataBase.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Id == id);
+                if(user != null) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
+            }
+            return user;
         }
 
         /// <summary>
@@ -92,28 +113,56 @@ namespace Cantina.Services
         /// </summary>
         public User GetUser(string email)
         {
-            return database.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Email.Equals(email));
+            var user = _dataBase.Users.Include(u => u.Profile).SingleOrDefault<User>(u => u.Email.Equals(email));
+            if (user != null) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
+            return user;
         }
 
         /// <summary>
-        /// Метод обновляет информацию о юзере в базе
+        /// Активация аккаунта
         /// </summary>
-        public async Task<bool> UpdateUserAsync(User user)
+        public async Task<bool> Activate(User user)
         {
-
-            if (user == null || user.Id == 0) return false;
-            database.Users.Update(user);
-            var updated = await database.SaveChangesAsync();
-            return updated > 0;
+            user.Active = true;
+            _dataBase.Update(user);
+            _dataBase.History.Add(new UserHistory
+            {
+                Date = DateTime.UtcNow,
+                Type = ActivityTypes.Activation,
+                User = user
+            });
+            try
+            {
+                var added = await _dataBase.SaveChangesAsync() > 0;
+                if (added) _memoryCache.Set<User>(user.Id, user, _cacheOptions);
+                return added;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
+
         /// <summary>
-        /// Метод проверяет имя на присутствие в таблице занятых имён
+        /// Метод проверяет модель имени на занятость
         /// </summary>
         public bool CheckNameForForbidden(string name)
         {
-            var result = database.ForbiddenNames.Where(fn => fn.Name.Equals(GetNameModel(name))).ToArray().Count();
-            return result > 0;
+            var count = _dataBase.ForbiddenNames.Where(fn => fn.Name.Equals(GetNameModel(name))).Count();
+            return count > 0;
+        }
+
+
+        /// <summary>
+        /// Обновляем имя юзера в таблице запрещенных имен
+        /// </summary>
+        public async Task UpdateForbiddenName(int userId, string newName)
+        {
+            var fName = await _dataBase.ForbiddenNames.Where(fn => fn.UserId == userId).SingleOrDefaultAsync();
+            fName.Name = GetNameModel(newName);
+            _dataBase.ForbiddenNames.Update(fName);
+            await _dataBase.SaveChangesAsync();
         }
 
         /// <summary>
@@ -121,21 +170,16 @@ namespace Cantina.Services
         /// </summary>
         public UserProfile GetUserProfile(int userId)
         {
-            return database.UserProfiles.SingleOrDefault<UserProfile>(up => up.User.Id == userId);
+            User user = null;
+            if (!_memoryCache.TryGetValue<User>(userId, out user))
+            {
+                user = GetUser(userId);
+                _memoryCache.Set<User>(userId, user, _cacheOptions);
+                return user.Profile;
+            }
+            return (user == null) ? null : user.Profile;
         }
-        /// <summary>
-        /// Метод обновляет профиль юзера
-        /// </summary>
-        public async Task<bool> UpdateUserProfileAsync(UserProfile profile)
-        {
-            if (profile == null || profile.UserId == 0) return false;
-            var forbiddenName = database.ForbiddenNames.Where(fn => fn.UserId == profile.UserId).FirstOrDefault();
-            forbiddenName.Name = GetNameModel(profile.Name);
-            database.UserProfiles.Update(profile);
-            database.ForbiddenNames.Update(forbiddenName);
-            var updated = await database.SaveChangesAsync();
-            return updated > 0;
-        }
+
 
         private string GetNameModel(string name)
         {

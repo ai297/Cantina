@@ -57,6 +57,27 @@ namespace Cantina.Models
         }
         private string settings; // Настройки юзера в сериализованном виде
 
-        public User User { get; set; }
+
+        //Переопределяем сравнение профилей для удобной проверки на наличие изменений
+        public static bool operator ==(UserProfile p1, UserProfile p2)
+        {
+            return (p1.UserId == p2.UserId && p1.Name.Equals(p2.Name)
+                    && p1.Location.Equals(p2.Location) && p1.Gender == p2.Gender
+                    && p1.Description.Equals(p2.Description) && p1.Birthday == p2.Birthday
+                    && p1.Settings.Equals(p2.Settings));
+        }
+        public static bool operator !=(UserProfile p1, UserProfile p2)
+        {
+            return !(p1 == p2);
+        }
+        public override bool Equals(object obj)
+        {
+            return obj is UserProfile profile &&
+                   UserId == profile.UserId;
+        }
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(UserId, Name);
+        }
     }
 }

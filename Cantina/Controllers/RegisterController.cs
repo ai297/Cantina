@@ -17,12 +17,10 @@ namespace Cantina.Controllers
     {
         ILogger<RegisterController> Logger;
         UserService UserService;
-        HistoryService HistoryService;
 
-        public RegisterController(UserService userService, HistoryService historyService, ILogger<RegisterController> logger)
+        public RegisterController(UserService userService, ILogger<RegisterController> logger)
         {
             UserService = userService;
-            HistoryService = historyService;
             Logger = logger;
         }
 
@@ -41,9 +39,9 @@ namespace Cantina.Controllers
             // 3. Добавлем нового юзера.
             var addedUser = await UserService.AddUserAsync(request.Email, request.Name, request.Password);
             if (addedUser == null) return BadRequest("Не удалось зарегистрироваться. Возможно на данный e-mail уже имеется зарегистрированный аккаунт.");
-            // 4. Запись в историю о регистрации.
-            await HistoryService.NewActivityAsync(addedUser.Id, ActivityTypes.Register, $"Имя при регистрации - {addedUser.Profile.Name}");
 
+            // 4. Отправляем уведомление на e-mail
+            // TODO: здесь отправка e-mail
 
             if (env.IsDevelopment()) Logger.LogInformation("Accaunt '{0}' registered with Name is '{1}'.", addedUser.Email, addedUser.Profile.Name);
 
