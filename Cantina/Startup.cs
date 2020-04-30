@@ -31,6 +31,7 @@ namespace Cantina
             // настройка конфигурации
             services.Configure<ApiOptions>(Configuration.GetSection("ApiOptions"));
             services.Configure<IntevalsOptions>(Configuration.GetSection("IntevalsOptions"));
+            services.Configure<AuthOptions>(Configuration.GetSection("AuthOptions"));
 
             services.AddCors(options =>
             {
@@ -54,10 +55,10 @@ namespace Cantina
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuer = true,                                                  // Проверять ли издателя токена.
-                        ValidIssuer = AuthOptions.Issuer,                                       // Валидный издатель
+                        ValidIssuer = Configuration.GetSection("AuthOptions").GetValue<string>("TokenIssuer"), // Валидный издатель
                         ValidateAudience = false,                                               // Проверять ли аудиторию.
                         ValidateLifetime = true,                                                // Проверка времени жизни токена.
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.GetValue<string>("SECURITY_KEY"))),  // Ключ безопасности.
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.GetSection("AuthOptions").GetValue<string>("SecurityKey"))),  // Ключ безопасности.
                         ValidateIssuerSigningKey = true                                         // Проверка ключа безопасности.
                     };
 
@@ -75,13 +76,30 @@ namespace Cantina
                             return Task.CompletedTask;
                         }
                     };
+                })
+                .AddJwtBearer(ChatConstants.AuthPolicy.ConfirmAccaunt, options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,                                                 // Проверять ли издателя токена.
+                        ValidateAudience = false,                                               // Проверять ли аудиторию.
+                        ValidateLifetime = true,                                                // Проверка времени жизни токена.
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.GetSection("AuthOptions").GetValue<string>("ConfirmKey"))),  // Ключ безопасности.
+                        ValidateIssuerSigningKey = true                                         // Проверка ключа безопасности.
+                    };
                 });
             services.AddAuthorization(options =>
             {
                 // политика доступа только для админов
-                options.AddPolicy(AuthOptions.AuthPolicy.RequireAdminRole, policy =>
+                options.AddPolicy(ChatConstants.AuthPolicy.RequireAdminRole, policy =>
                 {
-                    policy.RequireClaim(AuthOptions.Claims.Role, UserRoles.Admin.ToString());
+                    policy.RequireClaim(ChatConstants.Claims.Role, UserRoles.Admin.ToString());
+                });
+                // политика для доступа по токену активации аккаунта
+                options.AddPolicy(ChatConstants.AuthPolicy.ConfirmAccaunt, policy =>
+                {
+                    policy.AddAuthenticationSchemes(ChatConstants.AuthPolicy.ConfirmAccaunt);
+                    policy.RequireClaim(ChatConstants.Claims.Email);
                 });
             });                               // Сервис позволяет настраивать политику авторизации с различными правами юзеров.
             services.AddTransient<TokenGenerator>();                                // Сервис генерирует токены авторизации.

@@ -64,6 +64,10 @@ namespace Cantina.Models
         /// </summary>
         public DateTime LastActivityTime { get; set; }
         /// <summary>
+        /// Полное время юзера в онлайне
+        /// </summary>
+        public int OnlineTime { get; set; } = 0;
+        /// <summary>
         /// Список id активных клиентов юзера
         /// </summary>
         private HashSet<string> ConnectionIDs;

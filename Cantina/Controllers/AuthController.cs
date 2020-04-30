@@ -13,15 +13,15 @@ namespace Cantina.Controllers
     /// </summary>
     public class AuthController : ApiBaseController
     {
-        UserService userService;
-        TokenGenerator tokenGenerator;
-        HashService hashService;
+        private readonly UserService _userService;
+        private readonly TokenGenerator _tokenGenerator;
+        private readonly HashService _hashService;
 
         public AuthController(UserService userService, TokenGenerator tokenGenerator, HashService hashService)
         {
-            this.userService = userService;
-            this.tokenGenerator = tokenGenerator;
-            this.hashService = hashService;
+            _userService = userService;
+            _tokenGenerator = tokenGenerator;
+            _hashService = hashService;
         }
 
         /// <summary>
@@ -35,15 +35,15 @@ namespace Cantina.Controllers
             // проверяем запрос
             if (!TryValidateModel(request, nameof(request))) return BadRequest("Некорректные данные.");
             // Ищем юзера по email и проверяем пароль.
-            var user = userService.GetUser(request.Email);
+            var user = _userService.GetUser(request.Email);
             // Если не нашли или не совпадает пароль - не авторизован.
-            if (user == null || !user.PasswordEqual(hashService.Get256Hash(request.Password, request.Email))) return Unauthorized("Неверный логин или пароль");
+            if (user == null || !user.PasswordEqual(_hashService.Get256Hash(request.Password, request.Email))) return Unauthorized("Неверный логин или пароль");
             // Если аккаунт заблокирован
             if (!user.Active) return Forbid("Доступ запрещён");
             if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
             // Генерируем и возвращаем токен
-            var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
-            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
+            var userAgent = _hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
+            return Ok(new { Success = true, Token = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
         }
 
         /// <summary>
@@ -53,10 +53,10 @@ namespace Cantina.Controllers
         public ActionResult GetNewToken()
         {
             // получаем информацию о юзере из клэймов, сохранённых в токене
-            var ClaimId = HttpContext.User.FindFirstValue(AuthOptions.Claims.ID);
-            var ClaimUA = HttpContext.User.FindFirstValue(AuthOptions.Claims.UserAgent);
-            var ClaimEmail = HttpContext.User.FindFirstValue(AuthOptions.Claims.Email);
-            var userAgent = hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
+            var ClaimId = HttpContext.User.FindFirstValue(ChatConstants.Claims.ID);
+            var ClaimUA = HttpContext.User.FindFirstValue(ChatConstants.Claims.UserAgent);
+            var ClaimEmail = HttpContext.User.FindFirstValue(ChatConstants.Claims.Email);
+            var userAgent = _hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
 
             // если не установлен claim с Id пользователя
             // или значение клэйма юзер-агента не равно текущему хэшу User-Agent (другой браузер или другое устройство)
@@ -66,14 +66,14 @@ namespace Cantina.Controllers
                 !ClaimUA.Equals(userAgent)) return Unauthorized();
 
             // ищем юзера по Id
-            var user = userService.GetUser(Convert.ToInt32(ClaimId));
+            var user = _userService.GetUser(Convert.ToInt32(ClaimId));
             // если юзер не найден или аккаунт не подтверждён / не активен
             if (user == null || !user.Active || !user.Confirmed) return Unauthorized();
             // если юзер изменил email то рефреш-токен не действителен
             if (!user.Email.Equals(ClaimEmail)) return Unauthorized();
 
             // если всё впорядке - обновляем и возвращаем оба токена
-            return Ok(new { Success = true, Token = tokenGenerator.GetToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
+            return Ok(new { Success = true, Token = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
         }
     }
 }

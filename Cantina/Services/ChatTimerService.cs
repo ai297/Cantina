@@ -41,10 +41,9 @@ namespace Cantina.Services
             _logger.LogInformation($"Messages will be archived with an interval of {_options.Value.ArchiveSaving} min.");
             
             var usersUpdateInterval = TimeSpan.FromMinutes(_options.Value.OnlineUsersCheck);
-            var inactivityTime = TimeSpan.FromMinutes(_options.Value.InactivityTime);
             onlineUsersTimer = new Timer(async (object state) =>
             {
-                await _onlineUsers.CheckUsersStatus(usersUpdateInterval, inactivityTime);
+                await _onlineUsers.CheckUsersStatus();
             },
             null, usersUpdateInterval, usersUpdateInterval);
             _logger.LogInformation($"Online users will be checked every {_options.Value.OnlineUsersCheck} min.");

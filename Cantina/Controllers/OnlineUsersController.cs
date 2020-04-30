@@ -1,5 +1,7 @@
-﻿using Cantina.Services;
+﻿using System;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Cantina.Services;
 
 namespace Cantina.Controllers
 {
@@ -18,7 +20,10 @@ namespace Cantina.Controllers
         [HttpGet]
         public ActionResult GetOnlineUsers()
         {
-            return Ok(OnlineService.GetOnlineUsers());
+            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(ChatConstants.Claims.ID));
+            var isAdmin = false;
+            if (HttpContext.User.HasClaim(match => match.Type.Equals(ChatConstants.Claims.Role) && match.Value.Equals(UserRoles.Admin.ToString()))) isAdmin = true;
+            return Ok(OnlineService.GetOnlineUsers(userId, isAdmin));
         }
     }
 }

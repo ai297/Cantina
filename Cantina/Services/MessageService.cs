@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -108,25 +107,6 @@ namespace Cantina.Services
 
             // Обновляем количество оставшихся уже сохранённых сообщений
             _savedMessages = _savedMessages + messagesToSaveCount - messagesToRemoveCount;
-        }
-
-
-        /// <summary>
-        /// Запрос к архиву за сообщениями с конкретной датой.
-        /// </summary>
-        /// <param name="date">Lень, за который надо найти сообщения в виде объекта DateTime.</param>
-        /// <param name="quantity">Количество сообщений. Если 0 или меньше - выводим все сообщения.</param>
-        /// <param name="page">"страница" - множитель количества сообщений, которые нужно пропустить. Для постраничного вывода</param>
-        /// <returns></returns>
-        public async Task<ChatMessage[]> GetMessagesFromArchive(DateTime? date = null, int quantity = -1, int page = 0)
-        {
-            var skip = page * quantity;
-            if (date == null) date = DateTime.UtcNow.AddDays(-1).Date;
-            using var scope = _services.CreateScope();
-            var dataBase = scope.ServiceProvider.GetRequiredService<DataContext>();
-            var messages = dataBase.Archive.Where(message => message.DateTime.Date == date);
-            if (quantity > 0) messages = messages.Skip(skip).Take(quantity);
-            return await messages.ToArrayAsync();
         }
     }
 }

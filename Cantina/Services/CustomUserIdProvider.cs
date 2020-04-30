@@ -7,7 +7,7 @@ namespace Cantina.Services
     {
         public string GetUserId(HubConnectionContext connection)
         {
-            return connection.User?.FindFirstValue(AuthOptions.Claims.ID);
+            return connection.User?.FindFirstValue(ChatConstants.Claims.ID);
         }
     }
 }

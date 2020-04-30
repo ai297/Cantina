@@ -1,8 +1,9 @@
-﻿using Cantina.Services;
+﻿using System;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using System;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
-
+using Cantina.Services;
 
 namespace Cantina.Controllers
 {
@@ -11,23 +12,49 @@ namespace Cantina.Controllers
     /// </summary>
     public class ArchiveController : ApiBaseController
     {
-        private readonly MessageService _messageService;
+        private readonly DataContext _dataBase;
 
-        public ArchiveController(MessageService messageService)
+        public ArchiveController(DataContext dataContext)
         {
-            _messageService = messageService;
+            _dataBase = dataContext;
         }
 
 
+        /// <summary>
+        /// Метод возвращает список всех дат, за которые имеется архив
+        /// </summary>
+        [HttpGet("{days?}")]
+        public async Task<ActionResult> GetDates(int days = 60)
+        {
+            if (days < 1) days = 1;
+            else if (days > 365) days = 365;
+
+            var startDate = DateTime.UtcNow.AddDays(-days).Date;
+            var dates = await _dataBase.Archive.Where(msg => msg.DateTime >= startDate && msg.DateTime < DateTime.UtcNow.Date).Select(msg => msg.DateTime.Date).Distinct().ToArrayAsync();
+            Array.Sort(dates);
+            return Ok(dates);
+        }
+
+
+        /// <summary>
+        /// Метод возвращает сообщения из архива за конкретную дату
+        /// поддерживает постраничный вывод по quantity сообщений на странице
+        /// </summary>
         [HttpGet("{date}/{quantity?}/{page?}")]
         public async Task<ActionResult> GetMessages(string date, int quantity = 30, int page = 0)
         {
             DateTime archiveDate;
             if (DateTime.TryParseExact(date, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out archiveDate))
             {
-                var messages = await _messageService.GetMessagesFromArchive(archiveDate.Date, quantity, page);
-                if (messages.Length > 0) return Ok(messages);
-                else return NoContent();
+                if (archiveDate > DateTime.UtcNow.AddDays(-1).Date) return NotFound();
+                var messages = _dataBase.Archive.Where(msg => msg.DateTime.Date == archiveDate.Date);
+                if (quantity > 0) messages = messages.Skip(page * quantity).Take(quantity);         // если количество запрашиваемых сообщений > 0 - запрашиваем только нужные сообщения, иначе запрашиваем все сообщения за дату
+                var result = await messages.ToArrayAsync();
+                int count;
+                if (quantity > 0) count = await _dataBase.Archive.Where(msg => msg.DateTime.Date == archiveDate.Date).CountAsync();
+                else count = result.Length;
+                if (result.Length > 0) return Ok(new { All = count, Messages = result });
+                else return NotFound();
             }
             else return BadRequest();
         }

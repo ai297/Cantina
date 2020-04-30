@@ -5,11 +5,8 @@ namespace Cantina
     /// <summary>
     /// Настройки авторизации в одном месте
     /// </summary>
-    public static class AuthOptions
+    public static class ChatConstants
     {
-        public const string Issuer = "CantinaApiServer";    // издатель токена
-        public const int TokenLifetime = 4;                 // время жизни токена авторизации, ч
-
         /// <summary>
         /// Константы для названия клэймов
         /// </summary>
@@ -28,6 +25,7 @@ namespace Cantina
         {
             public const string RequireAdminRole = "RequireAdminRole";
             public const string RequireBotRole = "RequireBotRole";
+            public const string ConfirmAccaunt = "Activation";
         }
 
         /// <summary>

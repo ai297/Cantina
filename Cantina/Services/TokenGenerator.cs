@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -13,34 +13,55 @@ namespace Cantina.Services
     /// </summary>
     public class TokenGenerator
     {
-        IConfiguration configuration;
+        private readonly IOptions<AuthOptions> _options;
 
-        public TokenGenerator(IConfiguration configuration)
+        public TokenGenerator(IOptions<AuthOptions> options)
         {
-            this.configuration = configuration;
+            _options = options;
         }
 
         /// <summary>
         /// Метод генерирует токен авторизации.
         /// </summary>
-        public string GetToken(int id, string email, UserRoles role, string agent = null)
+        public string GetAuthToken(int id, string email, UserRoles role, string agent = null)
         {
-            var expires = DateTime.UtcNow.AddHours(AuthOptions.TokenLifetime);                                  // срок действия токена
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["SECURITY_KEY"]));
+            var expires = DateTime.UtcNow.AddHours(_options.Value.AuthTokenLifetime);   // срок действия токена
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.SecurityKey));
             // информация о юзере, которая будет содержаться в токене
             var claims = new List<Claim> {
-                new Claim(AuthOptions.Claims.ID, id.ToString()),                                                // Id юзера,
-                new Claim(AuthOptions.Claims.Email, email),                                                     // email юзера,
-                new Claim(AuthOptions.Claims.UserAgent, agent)                                                  // заголовок юзер-агент
+                new Claim(ChatConstants.Claims.ID, id.ToString()),                                                // Id юзера,
+                new Claim(ChatConstants.Claims.Email, email),                                                     // email юзера,
+                new Claim(ChatConstants.Claims.UserAgent, agent)                                                  // заголовок юзер-агент
             };
 
-            if (role != UserRoles.User) claims.Add(new Claim(AuthOptions.Claims.Role, role.ToString()));        // роль (админ / юзер / бот))
+            if (role != UserRoles.User) claims.Add(new Claim(ChatConstants.Claims.Role, role.ToString()));        // роль (админ / юзер / бот))
 
             var accessJWT = new JwtSecurityToken(
-                issuer: AuthOptions.Issuer,
+                issuer: _options.Value.TokenIssuer,
                 claims: claims,
                 expires: expires,
-                signingCredentials: new SigningCredentials(securityKey, AuthOptions.SecurityAlgorithm)
+                signingCredentials: new SigningCredentials(securityKey, ChatConstants.SecurityAlgorithm)
+            );
+            return new JwtSecurityTokenHandler().WriteToken(accessJWT);
+        }
+
+
+        /// <summary>
+        /// Токен для активации аккаунта
+        /// </summary>
+        public string GetActivationToken(string email)
+        {
+            var expires = DateTime.UtcNow.AddDays(_options.Value.ActivationTokenLifetime);                        // срок действия токена, дней
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.ConfirmKey));
+            // информация о юзере, которая будет содержаться в токене
+            var claims = new List<Claim> {
+                new Claim(ChatConstants.Claims.Email, email),                                                     // email юзера,
+            };
+
+            var accessJWT = new JwtSecurityToken(
+                claims: claims,
+                expires: expires,
+                signingCredentials: new SigningCredentials(securityKey, ChatConstants.SecurityAlgorithm)
             );
             return new JwtSecurityTokenHandler().WriteToken(accessJWT);
         }

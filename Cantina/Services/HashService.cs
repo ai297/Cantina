@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System;
 using System.Text;
 
@@ -12,9 +12,9 @@ namespace Cantina.Services
     {
         string localKey;
 
-        public HashService(IConfiguration configuration)
+        public HashService(IOptions<AuthOptions> options)
         {
-            localKey = configuration.GetSection("LOCAL_KEY").Value;
+            localKey = options.Value.LocalKey;
         }
 
         public string Get256Hash(string value, string salt = null)

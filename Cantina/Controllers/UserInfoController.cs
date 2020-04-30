@@ -29,7 +29,7 @@ namespace Cantina.Controllers
         [HttpGet]
         public ActionResult GetUserInfo()
         {
-            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(AuthOptions.Claims.ID));
+            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(ChatConstants.Claims.ID));
             return GetUserInfo(userId);
         }
 
@@ -61,15 +61,15 @@ namespace Cantina.Controllers
             if (!TryValidateModel(request)) return BadRequest("Некорректный запрос.");
             
             // 2. Получаем ID и роль юзера из токена авторизации
-            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(AuthOptions.Claims.ID));
-            var userRole = HttpContext.User.FindFirstValue(AuthOptions.Claims.Role);
+            var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(ChatConstants.Claims.ID));
+            var userRole = HttpContext.User.FindFirstValue(ChatConstants.Claims.Role);
             
             // 3. Проверяем подмену id юзера - чужой профиль может менять только админ
             if (userId != request.UserId && !userRole.Equals(UserRoles.Admin.ToString())) return Forbid("Недостаточно прав доступа.");
 
             // 4. Ищем юзера в списке онлайна, если его там нет - ошибка.
             var userSession = _onlineUsers.GetSessionInfo(userId);
-            if(userSession == null || userSession.Status == UserOnlineStatus.Offline) return BadRequest("Профиль не найден.");
+            if(userSession == null || userSession.Connections == 0) return BadRequest("Профиль не найден.");
 
             // 5. Проверяем есть ли изменения в профиле. Если нет изменений - больше ничего не делаем.
             var profile = userSession.GetProfile();
@@ -87,7 +87,7 @@ namespace Cantina.Controllers
             if (_onlineUsers.UpdateUserProfile(request))
             {
                 if (isNameChange) await userService.UpdateForbiddenName(userId, request.Name); // обновить имя в таблице запрещенных имен
-                if (userSession.Status != UserOnlineStatus.Hidden && userSession.Status != UserOnlineStatus.Offline) await mainHub.Clients.All.AddUserToOnlineList(userSession);
+                if (userSession.Status != UserOnlineStatus.Hidden && userSession.Connections > 0) await mainHub.Clients.All.AddUserToOnlineList(userSession);
                 userSession.LastActivityTime = DateTime.UtcNow;
                 return Ok("Профиль успешно обновлён.");
             }

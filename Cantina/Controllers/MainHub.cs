@@ -34,7 +34,7 @@ namespace Cantina.Controllers
             get
             {
                 UserRoles role;
-                if (Enum.TryParse<UserRoles>(Context.User.FindFirstValue(AuthOptions.Claims.Role), out role)) return role;
+                if (Enum.TryParse<UserRoles>(Context.User.FindFirstValue(ChatConstants.Claims.Role), out role)) return role;
                 else return UserRoles.User;
             }
         }
@@ -82,7 +82,7 @@ namespace Cantina.Controllers
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            if (CurrentUser != null) _onlineUsers.RemoveConnection(CurrentUserId, Context.ConnectionId);
+            if (CurrentUser != null) await _onlineUsers.RemoveConnection(CurrentUserId, Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -96,6 +96,11 @@ namespace Cantina.Controllers
             Context.Abort();
         }
 
+        public async Task SetStatus(UserOnlineStatus status)
+        {
+            if (status != UserOnlineStatus.Hidden || CurrentUserRole != UserRoles.Admin) await _onlineUsers.ChangeOnlineStatus(CurrentUserId, status);
+        }
+
         #endregion
 
         #region Сообщения
@@ -105,13 +110,10 @@ namespace Cantina.Controllers
         public async Task SendMessage(MessageRequest messageRequest)
         {
             // Если юзер был не онлайн - меняем статус на онлайн
-            // TODO: сделать более сложную проверку статусов, что бы невидимый становился видимым с сообщением о входе, "отошедший" возвращался с уведомлением.
             if(CurrentUser.Status != UserOnlineStatus.Online)
             {
-                CurrentUser.Status = UserOnlineStatus.Online;
-                await Clients.All.AddUserToOnlineList(CurrentUser);
+                await _onlineUsers.ChangeOnlineStatus(CurrentUserId, UserOnlineStatus.Online);
             }
-            
             
             if (messageRequest.Text.Length < 2) return;
 

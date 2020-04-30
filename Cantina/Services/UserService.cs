@@ -123,7 +123,7 @@ namespace Cantina.Services
         /// </summary>
         public async Task<bool> Activate(User user)
         {
-            user.Active = true;
+            user.Confirmed = true;
             _dataBase.Update(user);
             _dataBase.History.Add(new UserHistory
             {
