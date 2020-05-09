@@ -20,8 +20,8 @@ namespace Cantina.Models
         /// </summary>
         Task ReceiveMessage(ChatMessage message);
         /// <summary>
-        /// Метод выполнения произвольной команды
+        /// Хук окончания загрузки "старых" сообщений
         /// </summary>
-        Task RunCommand(string commandName, object data);
+        Task MessagesLoaded();
     }
 }

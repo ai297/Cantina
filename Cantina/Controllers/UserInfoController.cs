@@ -41,7 +41,7 @@ namespace Cantina.Controllers
         {
             var userSession = _onlineUsers.GetSessionInfo(userId);
 
-            if (userSession == null) return BadRequest();
+            if (userSession == null) return BadRequest("Юзер не в сети");
             else
             {
                 var profile = userSession.GetProfile();
@@ -65,7 +65,7 @@ namespace Cantina.Controllers
             var userRole = HttpContext.User.FindFirstValue(ChatConstants.Claims.Role);
             
             // 3. Проверяем подмену id юзера - чужой профиль может менять только админ
-            if (userId != request.UserId && !userRole.Equals(UserRoles.Admin.ToString())) return Forbid("Недостаточно прав доступа.");
+            if (userId != request.UserId && !userRole.Equals(UserRoles.Developer.ToString())) return Forbid("Недостаточно прав доступа.");
 
             // 4. Ищем юзера в списке онлайна, если его там нет - ошибка.
             var userSession = _onlineUsers.GetSessionInfo(userId);

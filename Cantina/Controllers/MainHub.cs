@@ -66,14 +66,15 @@ namespace Cantina.Controllers
         public override async Task OnConnectedAsync()
         {
             await base.OnConnectedAsync();
+            // регистрируем клиента / юзера в списке онлайна
+            await _onlineUsers.AddUser(CurrentUserId, Context.ConnectionId);
             // отправляем клиенту n-последних сообщений в чате
             var lastMessages = _messageService.GetLastMessages();
             foreach (var message in lastMessages)
             {
                 await Clients.Caller.ReceiveMessage(message);
             }
-            // регистрируем клиента / юзера в списке онлайна
-            await _onlineUsers.AddUser(CurrentUserId, Context.ConnectionId);
+            await Clients.Caller.MessagesLoaded();
         }
 
         /// <summary>
@@ -98,7 +99,7 @@ namespace Cantina.Controllers
 
         public async Task SetStatus(UserOnlineStatus status)
         {
-            if (status != UserOnlineStatus.Hidden || CurrentUserRole != UserRoles.Admin) await _onlineUsers.ChangeOnlineStatus(CurrentUserId, status);
+            if (status != UserOnlineStatus.Hidden || CurrentUserRole != UserRoles.Developer) await _onlineUsers.ChangeOnlineStatus(CurrentUserId, status);
         }
 
         #endregion
@@ -131,7 +132,7 @@ namespace Cantina.Controllers
                     break;
                 // системные сообщения
                 case MessageTypes.System:
-                    if (CurrentUserRole != UserRoles.Admin)
+                    if (CurrentUserRole != UserRoles.Developer)
                     {
                         messageRequest.MessageType = MessageTypes.Base;
                     }

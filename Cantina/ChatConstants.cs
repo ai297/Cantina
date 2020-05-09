@@ -23,7 +23,7 @@ namespace Cantina
         /// </summary>
         public static class AuthPolicy
         {
-            public const string RequireAdminRole = "RequireAdminRole";
+            public const string RequireDeveloperRole = "RequireDeveloperRole";
             public const string RequireBotRole = "RequireBotRole";
             public const string ConfirmAccaunt = "Activation";
         }

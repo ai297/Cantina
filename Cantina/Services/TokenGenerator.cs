@@ -23,9 +23,11 @@ namespace Cantina.Services
         /// <summary>
         /// Метод генерирует токен авторизации.
         /// </summary>
-        public string GetAuthToken(int id, string email, UserRoles role, string agent = null)
+        public string GetAuthToken(int id, string email, UserRoles role, string agent = null, bool longLife = false)
         {
-            var expires = DateTime.UtcNow.AddHours(_options.Value.AuthTokenLifetime);   // срок действия токена
+            DateTime expires;
+            if (longLife) expires = DateTime.UtcNow.AddDays(_options.Value.LongTokenLifetime);
+            else expires = DateTime.UtcNow.AddHours(_options.Value.AuthTokenLifetime);                            // срок действия токена
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Value.SecurityKey));
             // информация о юзере, которая будет содержаться в токене
             var claims = new List<Claim> {

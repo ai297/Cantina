@@ -7,7 +7,8 @@ namespace Cantina.Services
 {
     public class AuthOptions
     {
-        public int AuthTokenLifetime { get; set; } = 10;                        // время жизни токена авторизации, часов.
+        public int AuthTokenLifetime { get; set; } = 6;                        // время жизни токена авторизации, часов.
+        public int LongTokenLifetime { get; set; } = 4;                        // время жизни токена авторизации, дней.
         public string TokenIssuer { get; set; } = "CantinaServer";              // издатель токена
         public int ActivationTokenLifetime { get; set; } = 10;                  // время жизни токена активации аккаунта, дней
 

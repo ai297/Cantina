@@ -37,20 +37,20 @@ namespace Cantina.Controllers
             // Ищем юзера по email и проверяем пароль.
             var user = _userService.GetUser(request.Email);
             // Если не нашли или не совпадает пароль - не авторизован.
-            if (user == null || !user.PasswordEqual(_hashService.Get256Hash(request.Password, request.Email))) return Unauthorized("Неверный логин или пароль");
+            if (user == null || !user.PasswordEqual(_hashService.Get256Hash(request.Password, request.Email))) return BadRequest("Неверный логин или пароль");
             // Если аккаунт заблокирован
             if (!user.Active) return Forbid("Доступ запрещён");
-            if (!user.Confirmed) return Ok(new { Success = false, Type = "activation" });
+            if (!user.Confirmed) return Ok(new { Result = "Unconfirmed" });
             // Генерируем и возвращаем токен
             var userAgent = _hashService.Get128Hash(HttpContext.Request.Headers["User-Agent"]);
-            return Ok(new { Success = true, Token = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
+            return Ok(new { Result = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent, request.LongLife) });
         }
 
         /// <summary>
         /// Метод обновляет токен авторизации
         /// </summary>
-        [HttpGet]
-        public ActionResult GetNewToken()
+        [HttpGet("{remember?}")]
+        public ActionResult GetNewToken(bool remember = false)
         {
             // получаем информацию о юзере из клэймов, сохранённых в токене
             var ClaimId = HttpContext.User.FindFirstValue(ChatConstants.Claims.ID);
@@ -73,7 +73,7 @@ namespace Cantina.Controllers
             if (!user.Email.Equals(ClaimEmail)) return Unauthorized();
 
             // если всё впорядке - обновляем и возвращаем оба токена
-            return Ok(new { Success = true, Token = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent), UserName = user.Profile.Name });
+            return Ok(new { Result = _tokenGenerator.GetAuthToken(user.Id, user.Email, user.Role, userAgent, remember) });
         }
     }
 }

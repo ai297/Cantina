@@ -27,11 +27,11 @@ namespace Cantina.Controllers
         /// <summary>
         /// Запрос возвращает код активации для заданного e-mail'a. Доступен должен быть только админами для ручной активации юзеров.
         /// </summary>
-        [Authorize(Policy = ChatConstants.AuthPolicy.RequireAdminRole), HttpGet("{email}")]
+        [Authorize(Policy = ChatConstants.AuthPolicy.RequireDeveloperRole), HttpGet("{email}")]
         public ActionResult GetActivationCode(string email, [FromServices] IOptions<AuthOptions> options)
         {
             if (string.IsNullOrEmpty(email)) return BadRequest("Кто?");
-            return Ok($"Код активации для {email} (действует {options.Value.ActivationTokenLifetime} дней с текущего момента):\n {_tokenGenerator.GetActivationToken(email)}");
+            return Ok($"Код активации для {email} (действует {options.Value.ActivationTokenLifetime} дней с текущего момента): {_tokenGenerator.GetActivationToken(email)}");
         }
 
         /// <summary>

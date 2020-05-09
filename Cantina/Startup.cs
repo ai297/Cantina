@@ -91,9 +91,9 @@ namespace Cantina
             services.AddAuthorization(options =>
             {
                 // политика доступа только для админов
-                options.AddPolicy(ChatConstants.AuthPolicy.RequireAdminRole, policy =>
+                options.AddPolicy(ChatConstants.AuthPolicy.RequireDeveloperRole, policy =>
                 {
-                    policy.RequireClaim(ChatConstants.Claims.Role, UserRoles.Admin.ToString());
+                    policy.RequireClaim(ChatConstants.Claims.Role, UserRoles.Developer.ToString());
                 });
                 // политика для доступа по токену активации аккаунта
                 options.AddPolicy(ChatConstants.AuthPolicy.ConfirmAccaunt, policy =>
@@ -111,7 +111,7 @@ namespace Cantina
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
-                hubOptions.EnableDetailedErrors = true;                             // TODO: заменить на false;
+                hubOptions.EnableDetailedErrors = false;                             // TODO: заменить на false;
                 hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(2);         // Если в течении 2 минут нет сообщений от клиента - закрыть соединение.
                 //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);             // Время ожидания подтверждения о подключении от юзера, сек.
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);            // Частота отправки Ping-сообщений.

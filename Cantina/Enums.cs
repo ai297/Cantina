@@ -16,7 +16,7 @@
     public enum UserRoles : byte
     {
         User = 10,
-        Admin = 50,
+        Developer = 50,
         Bot = 100,
     }
 

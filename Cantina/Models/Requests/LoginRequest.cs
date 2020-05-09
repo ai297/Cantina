@@ -11,5 +11,7 @@ namespace Cantina.Models.Requests
         public string Email { get; set; }
         [Password]
         public string Password { get; set; }
+
+        public bool LongLife { get; set; } = false;
     }
 }

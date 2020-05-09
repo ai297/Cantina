@@ -22,7 +22,7 @@ namespace Cantina.Controllers
         {
             var userId = Convert.ToInt32(HttpContext.User.FindFirstValue(ChatConstants.Claims.ID));
             var isAdmin = false;
-            if (HttpContext.User.HasClaim(match => match.Type.Equals(ChatConstants.Claims.Role) && match.Value.Equals(UserRoles.Admin.ToString()))) isAdmin = true;
+            if (HttpContext.User.HasClaim(match => match.Type.Equals(ChatConstants.Claims.Role) && match.Value.Equals(UserRoles.Developer.ToString()))) isAdmin = true;
             return Ok(OnlineService.GetOnlineUsers(userId, isAdmin));
         }
     }

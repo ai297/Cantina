@@ -79,8 +79,8 @@ namespace Cantina.Services
                     Text = "В Кантину заходит <author />."
                 };
                 _messageService.AddMessage(enterMessage);
-                await _chatHub.Clients.All.ReceiveMessage(enterMessage);
-                await _chatHub.Clients.All.AddUserToOnlineList(OnlineUsers[userId]);
+                await _chatHub.Clients.AllExcept(connectionId).ReceiveMessage(enterMessage);
+                await _chatHub.Clients.AllExcept(connectionId).AddUserToOnlineList(OnlineUsers[userId]);
 
             }
             // если юзер в списке уже есть - добавляем соединение
@@ -216,10 +216,13 @@ namespace Cantina.Services
                 var userSession = keyValues.Value;
                 var profile = userSession.GetProfile();
                 int onlineTime = 0; 
-                if(userSession.EnterTime != DateTime.MinValue) onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
+                if(userSession.EnterTime != DateTime.MinValue && userSession.LastActivityTime > userSession.EnterTime)
+                {
+                    onlineTime = Convert.ToInt32((userSession.LastActivityTime - userSession.EnterTime).TotalMinutes);
+                }
 
                 // если юзер неактивен дольше определенного времени - помечаем как неактивного
-                if (userSession.Connections > 0 && (nowTime - userSession.LastActivityTime) > _inactivityTime)
+                if (userSession.Connections > 0 && (nowTime - userSession.LastActivityTime) > _inactivityTime && userSession.Status != UserOnlineStatus.NotActive)
                 {
                     lock (_locker)
                     {
