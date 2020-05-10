@@ -49,8 +49,6 @@ namespace Cantina.Controllers
             }
         }
 
-        // шаблон для удаления всех тегов из текста сообщения, кроме разрешенных
-
         public MainHub(OnlineUsersService onlineUsers, MessageService messageService, ILogger<MainHub> logger)
         {
             _onlineUsers = onlineUsers;
