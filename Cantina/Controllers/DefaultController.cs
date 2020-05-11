@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
+using Cantina.Services;
 
 namespace Cantina.Controllers
 {
@@ -21,15 +22,9 @@ namespace Cantina.Controllers
         /// </summary>
         [Route("status")]
         [HttpGet]
-
         public ActionResult Status()
         {
-
-            Services.EmailSender send = new Services.EmailSender();                                     //экземпляр класса EmailSender для отправки сообщения. тут всё понятно
-            send.SendEmail("email-отправителя", "Добро пожаловать!", "Код авторизации аккаунта: ");     //email указанный в Authenticate, тема, тело-письма
-
             return Ok();
         }
-
     }
 }

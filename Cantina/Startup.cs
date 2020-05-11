@@ -32,6 +32,7 @@ namespace Cantina
             services.Configure<ApiOptions>(Configuration.GetSection("ApiOptions"));
             services.Configure<IntevalsOptions>(Configuration.GetSection("IntevalsOptions"));
             services.Configure<AuthOptions>(Configuration.GetSection("AuthOptions"));
+            services.Configure<EmailOptions>(Configuration.GetSection("EmailOptions"));
 
             services.AddCors(options =>
             {
@@ -111,12 +112,13 @@ namespace Cantina
             services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();         // провайдер User Id для Хаба signalR
             services.AddSignalR(hubOptions =>                                       // SignalR (для реал-тайм обмена сообщениями через WebSockets)
             {
-                hubOptions.EnableDetailedErrors = false;                             // TODO: заменить на false;
+                hubOptions.EnableDetailedErrors = true;                             // TODO: заменить на false;
                 hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(2);         // Если в течении 2 минут нет сообщений от клиента - закрыть соединение.
                 //hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);             // Время ожидания подтверждения о подключении от юзера, сек.
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(30);            // Частота отправки Ping-сообщений.
             });
             services.AddMvc();
+            services.AddTransient<EmailSender>();                                   // сервис для отправки email
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILogger<Startup> logger)
